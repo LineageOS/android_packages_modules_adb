@@ -403,6 +403,8 @@ static char *connection_state_name(atransport *t)
         return "device";
     case CS_OFFLINE:
         return "offline";
+    case CS_UNAUTHORIZED:
+        return "unauthorized";
     default:
         return "unknown";
     }
@@ -532,6 +534,7 @@ void handle_packet(apacket *p, atransport *t)
 
     case A_AUTH:
         if (p->msg.arg0 == ADB_AUTH_TOKEN) {
+            t->connection_state = CS_UNAUTHORIZED;
             t->key = adb_auth_nextkey(t->key);
             if (t->key) {
                 send_auth_response(p->data, p->msg.data_length, t);
@@ -984,6 +987,33 @@ void start_device_log(void)
 #endif
 
 #if ADB_HOST
+
+#ifdef WORKAROUND_BUG6558362
+#include <sched.h>
+#define AFFINITY_ENVVAR "ADB_CPU_AFFINITY_BUG6558362"
+void adb_set_affinity(void)
+{
+   cpu_set_t cpu_set;
+   const char* cpunum_str = getenv(AFFINITY_ENVVAR);
+   char* strtol_res;
+   int cpu_num;
+
+   if (!cpunum_str || !*cpunum_str)
+       return;
+   cpu_num = strtol(cpunum_str, &strtol_res, 0);
+   if (*strtol_res != '\0')
+     fatal("bad number (%s) in env var %s. Expecting 0..n.\n", cpunum_str, AFFINITY_ENVVAR);
+
+   sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
+   D("orig cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
+   CPU_ZERO(&cpu_set);
+   CPU_SET(cpu_num, &cpu_set);
+   sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
+   sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
+   D("new cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
+}
+#endif
+
 int launch_server(int server_port)
 {
 #ifdef HAVE_WIN32_PROC
@@ -1208,6 +1238,10 @@ int adb_main(int is_daemon, int server_port)
 
 #if ADB_HOST
     HOST = 1;
+
+#ifdef WORKAROUND_BUG6558362
+    if(is_daemon) adb_set_affinity();
+#endif
     usb_vendors_init();
     usb_init();
     local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
@@ -1238,7 +1272,7 @@ int adb_main(int is_daemon, int server_port)
     /* don't run as root if we are running in secure mode */
     if (should_drop_privileges()) {
         struct __user_cap_header_struct header;
-        struct __user_cap_data_struct cap;
+        struct __user_cap_data_struct cap[2];
 
         if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) != 0) {
             exit(1);
@@ -1271,12 +1305,15 @@ int adb_main(int is_daemon, int server_port)
             exit(1);
         }
 
+        memset(&header, 0, sizeof(header));
+        memset(cap, 0, sizeof(cap));
+
         /* set CAP_SYS_BOOT capability, so "adb reboot" will succeed */
-        header.version = _LINUX_CAPABILITY_VERSION;
+        header.version = _LINUX_CAPABILITY_VERSION_3;
         header.pid = 0;
-        cap.effective = cap.permitted = (1 << CAP_SYS_BOOT);
-        cap.inheritable = 0;
-        capset(&header, &cap);
+        cap[CAP_TO_INDEX(CAP_SYS_BOOT)].effective |= CAP_TO_MASK(CAP_SYS_BOOT);
+        cap[CAP_TO_INDEX(CAP_SYS_BOOT)].permitted |= CAP_TO_MASK(CAP_SYS_BOOT);
+        capset(&header, cap);
 
         D("Local port disabled\n");
     } else {
