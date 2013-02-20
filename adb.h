@@ -128,10 +128,7 @@ struct asocket {
         */
     void (*close)(asocket *s);
 
-        /* socket-type-specific extradata */
-    void *extra;
-
-    	/* A socket is bound to atransport */
+        /* A socket is bound to atransport */
     atransport *transport;
 };
 
@@ -468,6 +465,7 @@ int connection_state(atransport *t);
 #define CS_RECOVERY   4
 #define CS_NOPERM     5 /* Insufficient permissions to communicate with the device */
 #define CS_SIDELOAD   6
+#define CS_UNAUTHORIZED 7
 
 extern int HOST;
 extern int SHELL_EXIT_NOTIFY_FD;
