@@ -81,12 +81,10 @@ LIBADB_windows_CFLAGS := \
     $(ADB_COMMON_windows_CFLAGS) \
 
 LIBADB_darwin_SRC_FILES := \
-    get_my_path_darwin.cpp \
     sysdeps_unix.cpp \
     usb_osx.cpp \
 
 LIBADB_linux_SRC_FILES := \
-    get_my_path_linux.cpp \
     sysdeps_unix.cpp \
     usb_linux.cpp \
 
@@ -184,10 +182,6 @@ LOCAL_CFLAGS_linux := $(LIBADB_linux_CFLAGS)
 LOCAL_CFLAGS_darwin := $(LIBADB_darwin_CFLAGS)
 LOCAL_SRC_FILES := \
     $(LIBADB_TEST_SRCS) \
-    adb_client.cpp \
-    bugreport.cpp \
-    bugreport_test.cpp \
-    line_printer.cpp \
     services.cpp \
     shell_service_protocol.cpp \
     shell_service_protocol_test.cpp \
@@ -203,7 +197,6 @@ LOCAL_STATIC_LIBRARIES := \
     libcrypto \
     libcutils \
     libdiagnose_usb \
-    libgmock_host \
 
 # Set entrypoint to wmain from sysdeps_win32.cpp instead of main
 LOCAL_LDFLAGS_windows := -municode
@@ -232,7 +225,6 @@ LOCAL_REQUIRED_MODULES_windows := AdbWinApi AdbWinUsbApi
 
 LOCAL_SRC_FILES := \
     adb_client.cpp \
-    bugreport.cpp \
     client/main.cpp \
     console.cpp \
     commandline.cpp \

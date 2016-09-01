@@ -126,7 +126,6 @@ void fatal_errno(const char* fmt, ...) __attribute__((noreturn, format(__printf_
 
 void handle_packet(apacket *p, atransport *t);
 
-void get_my_path(char *s, size_t maxLen);
 int launch_server(int server_port);
 int adb_server_main(int is_daemon, int server_port, int ack_reply_fd);
 
@@ -202,6 +201,8 @@ void usb_kick(usb_handle *h);
 #if ADB_HOST
 int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol);
 #endif
+
+int adb_commandline(int argc, const char **argv);
 
 ConnectionState connection_state(atransport *t);
 
