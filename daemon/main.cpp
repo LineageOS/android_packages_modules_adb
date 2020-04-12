@@ -212,6 +212,9 @@ int adbd_main(int server_port) {
     bool device_unlocked = "orange" == android::base::GetProperty("ro.boot.verifiedbootstate", "");
     if (__android_log_is_debuggable() || device_unlocked) {
         auth_required = android::base::GetBoolProperty("ro.adb.secure", false);
+#if defined(__ANDROID_RECOVERY__)
+        auth_required &= android::base::GetBoolProperty("ro.adb.secure.recovery", true);
+#endif
     }
 #endif
 
