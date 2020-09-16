@@ -42,7 +42,6 @@ cc_defaults {
         "-Wall",
         "-Wextra",
         "-Werror",
-        "-Wexit-time-destructors",
         "-Wno-non-virtual-dtor",
         "-Wno-unused-parameter",
         "-Wno-missing-field-initializers",
@@ -625,8 +624,12 @@ cc_library {
                 "daemon/restart_service.cpp",
             ],
             shared_libs: [
+                "libbinder_ndk",
                 "libmdnssd",
                 "libselinux",
+            ],
+            static_libs: [
+                "adbroot_aidl_interface-ndk",
             ],
         },
         recovery: {
@@ -634,8 +637,12 @@ cc_library {
                 "daemon/abb_service.cpp",
             ],
             exclude_shared_libs: [
+                "libbinder_ndk",
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
+            ],
+            exclude_static_libs: [
+                "adbroot_aidl_interface-ndk",
             ],
         },
     },
@@ -746,10 +753,25 @@ cc_binary {
     ],
 
     target: {
+        android: {
+            shared_libs: [
+                "libbinder_ndk",
+            ],
+
+            static_libs: [
+                "adbroot_aidl_interface-ndk",
+            ],
+        },
+
         recovery: {
             exclude_shared_libs: [
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
+                "libbinder_ndk",
+            ],
+
+            exclude_static_libs: [
+                "adbroot_aidl_interface-ndk",
             ],
         }
     },
@@ -780,6 +802,27 @@ phony {
         "libadbd_fs.recovery",
         "reboot.recovery",
     ],
+}
+
+cc_binary {
+    name: "adb_root",
+    srcs: [
+        "root/adbroot_service.cpp",
+        "root/main.cpp",
+    ],
+    init_rc: [
+        "root/adb_root.rc",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+        "liblog",
+        "libutils",
+    ],
+    static_libs: [
+        "adbroot_aidl_interface-ndk",
+    ],
+    system_ext_specific: true,
 }
 
 cc_binary {
@@ -995,5 +1038,36 @@ cc_test_host {
         "fastdeploy/testdata/rotating_cube-release.apk",
         "fastdeploy/testdata/sample.apk",
         "fastdeploy/testdata/sample.cd",
+    ],
+}
+
+aidl_interface {
+    name: "adbroot_aidl_interface",
+    unstable: true,
+    local_include_dir: "aidl",
+    srcs: [
+        "aidl/android/adbroot/IADBRootService.aidl",
+    ],
+    backend: {
+        cpp: {
+            enabled: false,
+        },
+        java: {
+            enabled: false,
+        },
+        ndk: {
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.adbd",
+            ],
+            min_sdk_version: "30",
+        },
+    },
+}
+
+filegroup {
+    name: "adbrootservice_aidl",
+    srcs: [
+        "aidl/android/adbroot/IADBRootService.aidl",
     ],
 }
