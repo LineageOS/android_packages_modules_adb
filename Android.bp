@@ -36,7 +36,6 @@ cc_defaults {
         "-Wall",
         "-Wextra",
         "-Werror",
-        "-Wexit-time-destructors",
         "-Wno-non-virtual-dtor",
         "-Wno-unused-parameter",
         "-Wno-missing-field-initializers",
@@ -708,12 +707,14 @@ cc_library {
             ],
             shared_libs: [
                 "adbd_flags_c_lib",
+                "libbinder_ndk",
                 "libmdnssd",
                 "libselinux",
             ],
             static_libs: [
                 "android_trade_in_mode_flags_cc_lib",
                 "android_adbdauth_flags_cc_lib",
+                "adbroot_aidl_interface-ndk",
             ],
         },
         recovery: {
@@ -722,11 +723,13 @@ cc_library {
             ],
             exclude_shared_libs: [
                 "adbd_flags_c_lib",
+                "libbinder_ndk",
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
             ],
             exclude_static_libs: [
                 "android_trade_in_mode_flags_cc_lib",
+                "adbroot_aidl_interface-ndk",
             ],
         },
     },
@@ -852,9 +855,12 @@ cc_binary {
             static_libs: [
                 "android_trade_in_mode_flags_cc_lib",
                 "android_adbdauth_flags_cc_lib",
+                "adbroot_aidl_interface-ndk",
             ],
+
             shared_libs: [
                 "adbd_flags_c_lib",
+                "libbinder_ndk",
             ],
         },
     },
@@ -904,6 +910,30 @@ phony {
     // This property is needed to inform Soong that the module and its deps are
     // installed as part of the recovery partition.
     recovery: true,
+}
+
+cc_binary {
+    name: "adb_root",
+    srcs: [
+        "root/adbroot_service.cpp",
+        "root/main.cpp",
+    ],
+    init_rc: [
+        "root/adb_root.rc",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder",
+        "libbinder_ndk",
+        "libcutils",
+        "liblog",
+        "libutils",
+        "packagemanager_aidl-cpp",
+    ],
+    static_libs: [
+        "adbroot_aidl_interface-ndk",
+    ],
+    system_ext_specific: true,
 }
 
 cc_binary {
@@ -1162,4 +1192,35 @@ cc_aconfig_library {
         "com.android.adbd",
     ],
     min_sdk_version: "apex_inherit",
+}
+
+aidl_interface {
+    name: "adbroot_aidl_interface",
+    unstable: true,
+    local_include_dir: "aidl",
+    srcs: [
+        "aidl/android/adbroot/IAdbRootService.aidl",
+    ],
+    backend: {
+        cpp: {
+            enabled: false,
+        },
+        java: {
+            enabled: false,
+        },
+        ndk: {
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.adbd",
+            ],
+            min_sdk_version: "30",
+        },
+    },
+}
+
+filegroup {
+    name: "adbrootservice_aidl",
+    srcs: [
+        "aidl/android/adbroot/IAdbRootService.aidl",
+    ],
 }
