@@ -421,7 +421,7 @@ cc_library_static {
     ],
     visibility: [
         "//bootable/recovery/minadbd",
-        "//system/core/adb",
+        "//packages/modules/adb:__subpackages__",
     ],
 }
 
@@ -496,7 +496,7 @@ cc_library {
         "com.android.adbd",
     ],
     visibility: [
-        "//system/core/adb",
+        "//packages/modules/adb",
     ],
 
 }
@@ -549,7 +549,7 @@ cc_library {
 
     visibility: [
         "//bootable/recovery/minadbd",
-        "//system/core/adb",
+	"//packages/modules/adb",
     ],
 }
 

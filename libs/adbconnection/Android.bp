@@ -39,7 +39,7 @@ cc_library {
     defaults: ["adbd_defaults"],
     visibility: [
         "//art:__subpackages__",
-        "//system/core/adb/apex:__subpackages__",
+        "//packages/modules/adb/apex:__subpackages__",
     ],
     apex_available: [
         "com.android.adbd",
