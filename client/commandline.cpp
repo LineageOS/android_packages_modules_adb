@@ -1969,7 +1969,7 @@ int adb_commandline(int argc, const char** argv) {
         return do_sync_push(srcs, dst, sync, compression, dry_run) ? 0 : 1;
     } else if (!strcmp(argv[0], "pull")) {
         bool copy_attrs = false;
-        CompressionType compression = CompressionType::Any;
+        CompressionType compression = CompressionType::None;
         std::vector<const char*> srcs;
         const char* dst = ".";
 
