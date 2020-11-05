@@ -41,7 +41,6 @@ cc_defaults {
 
     visibility: [
         "//packages/modules/adb:__subpackages__",
-        "//system/core/adb:__subpackages__",
 
         // This needs to be visible to minadbd, even though it's removed via exclude_shared_libs.
         "//bootable/recovery/minadbd:__subpackages__",
@@ -96,7 +95,6 @@ cc_defaults {
 
     visibility: [
         "//packages/modules/adb:__subpackages__",
-        "//system/core/adb:__subpackages__",
 
         // This needs to be visible to minadbd, even though it's removed via exclude_shared_libs.
         "//bootable/recovery/minadbd:__subpackages__",

@@ -41,7 +41,6 @@ cc_defaults {
     visibility: [
         "//art:__subpackages__",
         "//packages/modules/adb:__subpackages__",
-        "//system/core/adb:__subpackages__",
     ],
 
     // libadb_pairing_auth doesn't need an embedded build number.
