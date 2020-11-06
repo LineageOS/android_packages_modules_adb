@@ -5,7 +5,7 @@ set -euxo pipefail
 OUTPUT_DIR=$(realpath $(dirname "$0"))
 . "$OUTPUT_DIR"/include.sh
 
-BASE_PATH=/proc/self/cwd/system/core/adb
+BASE_PATH=/proc/self/cwd/packages/modules/adb
 PATHS=""
 if [[ $# == 0 ]]; then
   PATHS=$BASE_PATH
