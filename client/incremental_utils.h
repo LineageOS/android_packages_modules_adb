@@ -25,8 +25,6 @@
 
 #include <stdint.h>
 
-#include <android-base/off64_t.h>
-
 namespace incremental {
 
 using Size = int64_t;
