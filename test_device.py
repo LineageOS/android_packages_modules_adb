@@ -627,6 +627,7 @@ class ArgumentEscapingTest(DeviceTest):
             os.remove(tf.name)
 
 
+@unittest.skip("b/172372960: temporarily disabled due to flakiness")
 class RootUnrootTest(DeviceTest):
     def _test_root(self):
         message = self.device.root()
