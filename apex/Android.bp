@@ -1,7 +1,7 @@
 apex_defaults {
     name: "com.android.adbd-defaults",
     updatable: true,
-    min_sdk_version: "R",
+    min_sdk_version: "30",
 
     binaries: ["adbd"],
     compile_multilib: "both",
