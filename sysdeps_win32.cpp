@@ -802,6 +802,200 @@ static int GetSocketProtocolFromSocketType(int type) {
     }
 }
 
+int adb_socket(int domain, int type, int protocol) {
+    SOCKET s;
+
+    unique_fh f(_fh_alloc(&_fh_socket_class));
+    if (!f) {
+        return -1;
+    }
+
+    s = socket(domain, type, GetSocketProtocolFromSocketType(type));
+    if (s == INVALID_SOCKET) {
+        const DWORD err = WSAGetLastError();
+        const auto error = android::base::StringPrintf(
+                "cannot create socket: %s", android::base::SystemErrorCodeToString(err).c_str());
+        D("%s", error.c_str());
+        _socket_set_errno(err);
+        return -1;
+    }
+    f->fh_socket = s;
+
+    const int fd = _fh_to_int(f.get());
+    f.release();
+    return fd;
+}
+
+int adb_bind(borrowed_fd fd, const sockaddr* addr, socklen_t addrlen) {
+    FH fh = _fh_from_int(fd, __func__);
+
+    if (!fh || fh->clazz != &_fh_socket_class) {
+        D("adb_bind: invalid fd %d", fd.get());
+        errno = EBADF;
+        return -1;
+    }
+
+    if (bind(fh->fh_socket, addr, addrlen) == SOCKET_ERROR) {
+        const DWORD err = WSAGetLastError();
+        LOG(ERROR) << "adb_bind: bind on fd " << fd.get()
+                   << " failed: " + android::base::SystemErrorCodeToString(err);
+        _socket_set_errno(err);
+        return -1;
+    }
+
+    return 0;
+}
+
+static void to_WSAMSG(const struct adb_msghdr* msg, WSAMSG* wmsg) {
+    WSABUF* msgbuf = reinterpret_cast<WSABUF*>(msg->msg_iov);
+
+    memset(wmsg, 0, sizeof(decltype(*wmsg)));
+    wmsg->name = (struct sockaddr*)msg->msg_name;
+    char ipaddr[1024];
+    switch (wmsg->name->sa_family) {
+        case AF_INET: {
+            auto* sin = reinterpret_cast<struct sockaddr_in*>(wmsg->name);
+            inet_ntop(sin->sin_family, &sin->sin_addr, ipaddr, 1024);
+            break;
+        }
+        case AF_INET6: {
+            auto* sin = reinterpret_cast<struct sockaddr_in6*>(wmsg->name);
+            inet_ntop(sin->sin6_family, &sin->sin6_addr, ipaddr, 1024);
+            break;
+        }
+        default:
+            // Address may be unset when receiving messages, which is fine.
+            break;
+    }
+    wmsg->namelen = msg->msg_namelen;
+    wmsg->lpBuffers = msgbuf;
+    wmsg->dwBufferCount = msg->msg_iovlen;
+    wmsg->Control.len = msg->msg_controllen;
+    wmsg->Control.buf = (char*)msg->msg_control;
+    wmsg->dwFlags = msg->msg_flags;
+}
+
+ssize_t adb_sendmsg(borrowed_fd fd, const struct adb_msghdr* msg, int flags) {
+    FH fh = _fh_from_int(fd, __func__);
+
+    if (!fh || fh->clazz != &_fh_socket_class) {
+        D("adb_sendmsg: invalid fd %d", fd.get());
+        errno = EBADF;
+        return -1;
+    }
+
+    WSAMSG wmsg;
+    to_WSAMSG(msg, &wmsg);
+
+    DWORD num_bytes = 0;
+
+    // TODO: WSASendMsg doesn't work when setting the source address to INADDR_ANY. Posix sendmsg()
+    // works though. Need to figure out what to do when we get a wildcard address.
+    auto ret = WSASendMsg(fh->fh_socket, &wmsg, 0, &num_bytes, NULL, NULL);
+    if (ret == SOCKET_ERROR) {
+        const DWORD err = WSAGetLastError();
+        LOG(ERROR) << "WSASendMsg() failed " << android::base::SystemErrorCodeToString(err);
+        _socket_set_errno(err);
+        return -1;
+    }
+
+    return num_bytes;
+}
+
+// WSARecvMsg() function pointer must be obtained at runtime.
+static LPFN_WSARECVMSG GetWSARecvMsgFunc(borrowed_fd fd) {
+    FH fh = _fh_from_int(fd, __func__);
+
+    if (!fh || fh->clazz != &_fh_socket_class) {
+        D("%s(%d) failed: invalid fd", __func__, fd.get());
+        errno = EBADF;
+        return nullptr;
+    }
+
+    LPFN_WSARECVMSG func = nullptr;
+    GUID guid = WSAID_WSARECVMSG;
+    DWORD bytes_returned = 0;
+
+    if (WSAIoctl(fh->fh_socket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), &func,
+                 sizeof(func), &bytes_returned, nullptr, nullptr) != 0) {
+        const DWORD err = WSAGetLastError();
+        D("%s(%d) failed: %s", __func__, fd.get(),
+          android::base::SystemErrorCodeToString(err).c_str());
+        _socket_set_errno(err);
+        return nullptr;
+    }
+
+    return func;
+}
+
+ssize_t adb_recvmsg(borrowed_fd fd, struct adb_msghdr* msg, int flags) {
+    FH fh = _fh_from_int(fd, __func__);
+
+    if (!fh || fh->clazz != &_fh_socket_class) {
+        D("adb_recvmsg: invalid fd %d", fd.get());
+        errno = EBADF;
+        return -1;
+    }
+
+    auto WSARecvMsgFunc = GetWSARecvMsgFunc(fd);
+    if (!WSARecvMsgFunc) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    WSAMSG wmsg;
+    to_WSAMSG(msg, &wmsg);
+
+    DWORD num_bytes = 0;
+    CHECK_EQ(wmsg.dwBufferCount, 1U);
+    char* orig = wmsg.lpBuffers[0].buf;
+    auto orig_len = wmsg.lpBuffers[0].len;
+    auto bytes_remaining = orig_len;
+    auto orig_flags = wmsg.dwFlags;
+    while (bytes_remaining > 0) {
+        const auto ret = WSARecvMsgFunc(fh->fh_socket, &wmsg, &num_bytes, NULL, NULL);
+        if (ret == SOCKET_ERROR) {
+            const DWORD err = WSAGetLastError();
+            LOG(ERROR) << "WSARecvMsg() failed " << android::base::SystemErrorCodeToString(err);
+            _socket_set_errno(err);
+            return -1;
+        }
+
+        bytes_remaining -= num_bytes;
+
+        if (bytes_remaining > 0) {
+            wmsg.lpBuffers[0].buf = orig + (orig_len - bytes_remaining);
+            wmsg.lpBuffers[0].len = bytes_remaining;
+            // WSARecvMsg will change dwFlags, which will make subsequent calls to WSARecvMsg fail
+            // with invalid operation error.
+            wmsg.dwFlags = orig_flags;
+        }
+    }
+
+    wmsg.lpBuffers[0].buf = orig;
+    wmsg.lpBuffers[0].len = orig_len;
+
+    return orig_len;
+}
+
+adb_cmsghdr* adb_CMSG_FIRSTHDR(adb_msghdr* msgh) {
+    WSAMSG wmsg;
+    to_WSAMSG(msgh, &wmsg);
+
+    return WSA_CMSG_FIRSTHDR(&wmsg);
+}
+
+adb_cmsghdr* adb_CMSG_NXTHDR(adb_msghdr* msgh, adb_cmsghdr* cmsg) {
+    WSAMSG wmsg;
+    to_WSAMSG(msgh, &wmsg);
+
+    return WSA_CMSG_NXTHDR(&wmsg, cmsg);
+}
+
+unsigned char* adb_CMSG_DATA(adb_cmsghdr* cmsg) {
+    return WSA_CMSG_DATA(cmsg);
+}
+
 int network_loopback_client(int port, int type, std::string* error) {
     struct sockaddr_in addr;
     SOCKET s;
@@ -1004,6 +1198,26 @@ int network_connect(const std::string& host, int port, int type, int timeout, st
     return fd;
 }
 
+std::optional<ssize_t> network_peek(borrowed_fd fd) {
+    FH fh = _fh_from_int(fd, __func__);
+
+    if (!fh || fh->clazz != &_fh_socket_class) {
+        D("network_peek: invalid fd %d", fd.get());
+        errno = EBADF;
+        return std::nullopt;
+    }
+
+    unsigned long sz_bytes = -1;
+    if (ioctlsocket(fh->fh_socket, FIONREAD, &sz_bytes) != 0) {
+        const DWORD err = WSAGetLastError();
+        LOG(ERROR) << "ioctlsocket() failed " << android::base::SystemErrorCodeToString(err);
+        _socket_set_errno(err);
+        return std::nullopt;
+    }
+
+    return sz_bytes;
+}
+
 int adb_register_socket(SOCKET s) {
     FH f = _fh_alloc(&_fh_socket_class);
     f->fh_socket = s;
@@ -1068,7 +1282,7 @@ int adb_setsockopt(borrowed_fd fd, int level, int optname, const void* optval, s
     return result;
 }
 
-static int adb_getsockname(borrowed_fd fd, struct sockaddr* sockaddr, socklen_t* optlen) {
+int adb_getsockname(borrowed_fd fd, struct sockaddr* sockaddr, socklen_t* optlen) {
     FH fh = _fh_from_int(fd, __func__);
 
     if (!fh || fh->clazz != &_fh_socket_class) {

@@ -26,6 +26,7 @@
 
 #include <errno.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -60,6 +61,7 @@ static inline void* mempcpy(void* dst, const void* src, size_t n) {
 #include <errno.h>
 #include <fcntl.h>
 #include <io.h>
+#include <mswsock.h>
 #include <process.h>
 #include <stdint.h>
 #include <sys/stat.h>
@@ -184,10 +186,14 @@ inline int network_local_server(const char* name, int namespace_id, int type, st
 int network_connect(const std::string& host, int port, int type, int timeout,
                     std::string* error);
 
+std::optional<ssize_t> network_peek(borrowed_fd fd);
+
 extern int adb_socket_accept(borrowed_fd serverfd, struct sockaddr* addr, socklen_t* addrlen);
 
 #undef   accept
 #define  accept  ___xxx_accept
+
+int adb_getsockname(borrowed_fd fd, struct sockaddr* sockaddr, socklen_t* addrlen);
 
 // Returns the local port number of a bound socket, or -1 on failure.
 int adb_socket_get_local_port(borrowed_fd fd);
@@ -198,7 +204,33 @@ extern int adb_setsockopt(borrowed_fd fd, int level, int optname, const void* op
 #undef   setsockopt
 #define  setsockopt  ___xxx_setsockopt
 
+// Wrapper around socket() call. On Windows, ADB has an indirection layer for file descriptors.
+extern int adb_socket(int domain, int type, int protocol);
+
+// Wrapper around bind() call, as Windows has indirection layer.
+extern int adb_bind(borrowed_fd fd, const sockaddr* addr, int namelen);
+
 extern int adb_socketpair(int sv[2]);
+
+// Posix compatibility layer for msghdr
+struct adb_msghdr {
+    void* msg_name;
+    socklen_t msg_namelen;
+    struct adb_iovec* msg_iov;
+    size_t msg_iovlen;
+    void* msg_control;
+    size_t msg_controllen;
+    int msg_flags;
+};
+
+ssize_t adb_sendmsg(borrowed_fd fd, const adb_msghdr* msg, int flags);
+ssize_t adb_recvmsg(borrowed_fd fd, adb_msghdr* msg, int flags);
+
+using adb_cmsghdr = WSACMSGHDR;
+
+extern adb_cmsghdr* adb_CMSG_FIRSTHDR(adb_msghdr* msgh);
+extern adb_cmsghdr* adb_CMSG_NXTHDR(adb_msghdr* msgh, adb_cmsghdr* cmsg);
+extern unsigned char* adb_CMSG_DATA(adb_cmsghdr* cmsg);
 
 struct adb_pollfd {
     int fd;
@@ -576,6 +608,11 @@ inline int network_local_server(const char* name, int namespace_id, int type, st
 
 int network_connect(const std::string& host, int port, int type, int timeout, std::string* error);
 
+inline std::optional<ssize_t> network_peek(borrowed_fd fd) {
+    ssize_t ret = recv(fd.get(), nullptr, 0, MSG_PEEK | MSG_TRUNC);
+    return ret == -1 ? std::nullopt : std::make_optional(ret);
+}
+
 static inline int adb_socket_accept(borrowed_fd serverfd, struct sockaddr* addr,
                                     socklen_t* addrlen) {
     int fd;
@@ -588,6 +625,10 @@ static inline int adb_socket_accept(borrowed_fd serverfd, struct sockaddr* addr,
 
 #undef accept
 #define accept ___xxx_accept
+
+inline int adb_getsockname(borrowed_fd fd, struct sockaddr* sockaddr, socklen_t* addrlen) {
+    return getsockname(fd.get(), sockaddr, addrlen);
+}
 
 inline int adb_socket_get_local_port(borrowed_fd fd) {
     return socket_get_local_port(fd.get());
@@ -627,6 +668,14 @@ static inline int adb_setsockopt(borrowed_fd fd, int level, int optname, const v
 #undef setsockopt
 #define setsockopt ___xxx_setsockopt
 
+static inline int adb_socket(int domain, int type, int protocol) {
+    return socket(domain, type, protocol);
+}
+
+static inline int adb_bind(borrowed_fd fd, const sockaddr* addr, int namelen) {
+    return bind(fd.get(), addr, namelen);
+}
+
 static inline int unix_socketpair(int d, int type, int protocol, int sv[2]) {
     return socketpair(d, type, protocol, sv);
 }
@@ -644,6 +693,29 @@ static inline int adb_socketpair(int sv[2]) {
 
 #undef socketpair
 #define socketpair ___xxx_socketpair
+
+typedef struct msghdr adb_msghdr;
+inline ssize_t adb_sendmsg(borrowed_fd fd, const adb_msghdr* msg, int flags) {
+    return sendmsg(fd.get(), msg, flags);
+}
+
+inline ssize_t adb_recvmsg(borrowed_fd fd, adb_msghdr* msg, int flags) {
+    return recvmsg(fd.get(), msg, flags);
+}
+
+using adb_cmsghdr = cmsghdr;
+
+inline adb_cmsghdr* adb_CMSG_FIRSTHDR(adb_msghdr* msgh) {
+    return CMSG_FIRSTHDR(msgh);
+}
+
+inline adb_cmsghdr* adb_CMSG_NXTHDR(adb_msghdr* msgh, adb_cmsghdr* cmsg) {
+    return CMSG_NXTHDR(msgh, cmsg);
+}
+
+inline unsigned char* adb_CMSG_DATA(adb_cmsghdr* cmsg) {
+    return CMSG_DATA(cmsg);
+}
 
 typedef struct pollfd adb_pollfd;
 static inline int adb_poll(adb_pollfd* fds, size_t nfds, int timeout) {

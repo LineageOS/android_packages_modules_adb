@@ -28,6 +28,7 @@
 
 #include "adb_auth.h"
 #include "adb_known_hosts.pb.h"
+#include "adb_mdns.h"
 #include "adb_utils.h"
 #include "client/adb_client.h"
 #include "sysdeps.h"
@@ -250,5 +251,5 @@ void adb_wifi_pair_device(const std::string& host, const std::string& password,
     // Write to adb_known_hosts
     write_known_host_to_file(device_guid);
     // Try to auto-connect.
-    adb_secure_connect_by_service_name(device_guid.c_str());
+    adb_secure_connect_by_service_name(device_guid);
 }
