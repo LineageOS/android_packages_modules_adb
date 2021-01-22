@@ -113,7 +113,12 @@ cc_defaults {
     },
 }
 
-cc_defaults {
+soong_config_module_type_import {
+    from: "system/apex/Android.bp",
+    module_types: ["library_linking_strategy_cc_defaults"],
+}
+
+library_linking_strategy_cc_defaults {
     name: "libadbd_binary_dependencies",
     static_libs: [
         "libadb_crypto",
@@ -124,7 +129,6 @@ cc_defaults {
         "libadbd_core",
         "libadbconnection_server",
         "libasyncio",
-        "libbase",
         "libbrotli",
         "libcutils_sockets",
         "libdiagnose_usb",
@@ -144,6 +148,21 @@ cc_defaults {
         "liblog",
         "libselinux",
     ],
+
+    soong_config_variables:{
+        library_linking_strategy: {
+            prefer_static: {
+                static_libs: [
+                    "libbase",
+                ],
+            },
+            conditions_default: {
+                shared_libs: [
+                    "libbase",
+                ],
+            },
+        },
+    },
 
     target: {
         recovery: {
