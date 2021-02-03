@@ -49,33 +49,6 @@ apex {
     ],
 }
 
-// TODO(b/178585590): delete after testing linking strategy
-genrule {
-    name: "com.android.adbd.stripped",
-    out: ["com.android.adbd.apex.stripped"],
-    defaults: ["apexer_test_host_tools_list"],
-    srcs: [
-        ":com.android.adbd",
-        "com.android.adbd.avbpubkey",
-        "com.android.adbd.pem",
-        "com.android.adbd.pk8",
-        "com.android.adbd.x509.pem",
-    ],
-    tools: [
-        "shared_libs_repack",
-    ],
-    cmd: "$(location shared_libs_repack) " +
-         " --mode strip" +
-         " --libs libbase.so" +
-         " --key $(location com.android.adbd.pem)" +
-         " --input $(location :com.android.adbd)" +
-         " --output $(genDir)/com.android.adbd.apex.stripped" +
-         " --pk8key $(location com.android.adbd.pk8)" +
-         " --pubkey $(location com.android.adbd.avbpubkey)" +
-         " --x509key $(location com.android.adbd.x509.pem)" +
-         " --tmpdir $(genDir)",
-}
-
 // adbd apex with INT_MAX version code, to allow for upgrade/rollback testing.
 apex_test {
     name: "test_com.android.adbd",
