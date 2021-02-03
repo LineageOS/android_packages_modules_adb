@@ -1,1 +1,11 @@
-../../.clang-format-2
+BasedOnStyle: Google
+Standard: Cpp11
+AllowShortFunctionsOnASingleLine: Inline
+ColumnLimit: 100
+CommentPragmas: NOLINT:.*
+DerivePointerAlignment: false
+IncludeBlocks: Preserve
+IndentWidth: 2
+PointerAlignment: Left
+TabWidth: 2
+UseTab: Never
