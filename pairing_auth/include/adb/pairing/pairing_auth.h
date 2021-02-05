@@ -25,7 +25,6 @@
 #endif
 
 __BEGIN_DECLS
-#if !defined(__ANDROID__) || __ANDROID_API__ >= 30
 
 /**
  * PairingAuthCtx is a wrapper around the SPAKE2 protocol + cipher initialization
@@ -182,5 +181,4 @@ size_t pairing_auth_safe_decrypted_size(PairingAuthCtx* ctx, const uint8_t* buf,
 bool pairing_auth_decrypt(PairingAuthCtx* ctx, const uint8_t* inbuf, size_t inlen, uint8_t* outbuf,
                           size_t* outlen) __INTRODUCED_IN(30);
 
-#endif  //!__ANDROID__ || __ANDROID_API__ >= 30
 __END_DECLS
