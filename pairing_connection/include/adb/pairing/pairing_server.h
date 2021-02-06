@@ -32,7 +32,6 @@
 #endif
 
 __BEGIN_DECLS
-#if !defined(__ANDROID__) || __ANDROID_API__ >= 30
 
 // PairingServerCtx is a wrapper around the #PairingConnectionCtx APIs,
 // which handles multiple client connections.
@@ -107,5 +106,4 @@ PairingServerCtx* pairing_server_new_no_cert(const uint8_t* pswd, size_t pswd_le
 // @param ctx the PairingServerCtx instance to destroy.
 void pairing_server_destroy(PairingServerCtx* ctx) __INTRODUCED_IN(30);
 
-#endif  //!__ANDROID__ || __ANDROID_API__ >= 30
 __END_DECLS
