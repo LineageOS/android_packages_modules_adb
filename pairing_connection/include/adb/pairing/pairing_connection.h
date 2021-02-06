@@ -36,7 +36,6 @@
 // If both sides have authenticated, they will exchange their peer information
 // (see #PeerInfo).
 __BEGIN_DECLS
-#if !defined(__ANDROID__) || __ANDROID_API__ >= 30
 
 const uint32_t kMaxPeerInfoSize = 8192;
 struct PeerInfo {
@@ -126,5 +125,4 @@ PairingConnectionCtx* pairing_connection_server_new(const uint8_t* pswd, size_t 
 // @param ctx the PairingConnectionCtx instance to destroy. Will abort if null.
 void pairing_connection_destroy(PairingConnectionCtx* ctx) __INTRODUCED_IN(30);
 
-#endif  //!__ANDROID__ || __ANDROID_API__ >= 30
 __END_DECLS
