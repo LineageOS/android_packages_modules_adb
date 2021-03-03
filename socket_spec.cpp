@@ -164,7 +164,7 @@ bool is_socket_spec(std::string_view spec) {
             return true;
         }
     }
-    return spec.starts_with("tcp:") || spec.starts_with("acceptfd:");
+    return spec.starts_with("tcp:") || spec.starts_with("acceptfd:") || spec.starts_with("vsock:");
 }
 
 bool is_local_socket_spec(std::string_view spec) {
@@ -235,7 +235,7 @@ bool socket_spec_connect(unique_fd* fd, std::string_view address, int* port, std
         std::vector<std::string> fragments = android::base::Split(spec_str, ":");
         unsigned int port_value = port ? *port : 0;
         if (fragments.size() != 2 && fragments.size() != 3) {
-            *error = android::base::StringPrintf("expected vsock:cid or vsock:port:cid in '%s'",
+            *error = android::base::StringPrintf("expected vsock:cid or vsock:cid:port in '%s'",
                                                  spec_str.c_str());
             errno = EINVAL;
             return false;
@@ -282,7 +282,7 @@ bool socket_spec_connect(unique_fd* fd, std::string_view address, int* port, std
         }
         return true;
 #else   // ADB_LINUX
-        *error = "vsock is only supported on linux";
+        *error = "vsock is only supported on Linux";
         return false;
 #endif  // ADB_LINUX
     } else if (address.starts_with("acceptfd:")) {
