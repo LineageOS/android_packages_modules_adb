@@ -286,11 +286,9 @@ class ServerTest(unittest.TestCase):
         os.name == "posix",
         "adb doesn't yet support IPv6 on Windows",
     )
-    def disabled_test_starts_on_ipv6_localhost(self):
+    def test_starts_on_ipv6_localhost(self):
         """
         Tests that the server can start up on ::1 and that it's accessible
-
-        Disabled due to b/178980410
         """
 
         server_port = find_open_port()
