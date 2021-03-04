@@ -222,6 +222,7 @@ bool socket_spec_connect(unique_fd* fd, std::string_view address, int* port, std
         }
 
         if (fd->get() > 0) {
+            set_tcp_keepalive(fd->get(), 1);
             disable_tcp_nagle(fd->get());
             if (port) {
                 *port = port_value;
