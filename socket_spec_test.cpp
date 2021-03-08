@@ -178,6 +178,7 @@ TEST(socket_spec, is_socket_spec) {
     EXPECT_TRUE(is_socket_spec("acceptfd:blah"));
     EXPECT_TRUE(is_socket_spec("local:blah"));
     EXPECT_TRUE(is_socket_spec("localreserved:blah"));
+    EXPECT_TRUE(is_socket_spec("vsock:123:456"));
 }
 
 TEST(socket_spec, is_local_socket_spec) {

@@ -125,6 +125,7 @@ Common destination naming conventions include:
 
 * "tcp:<host>:<port>" - host may be omitted to indicate localhost
 * "udp:<host>:<port>" - host may be omitted to indicate localhost
+* "vsock:<CID>:<port>"
 * "local-dgram:<identifier>"
 * "local-stream:<identifier>"
 * "shell" - local shell service
