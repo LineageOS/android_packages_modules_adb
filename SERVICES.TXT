@@ -110,6 +110,7 @@ host:<request>
         tcp:<port>      -> TCP localhost:<port> on device
         local:<path>    -> Unix local domain socket on device
         jdwp:<pid>      -> JDWP thread on VM process <pid>
+        vsock:<CID>:<port> -> vsock on the given CID and port
 
     or even any one of the local services described below.
 
