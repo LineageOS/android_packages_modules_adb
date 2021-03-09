@@ -1119,6 +1119,7 @@ ConnectionState atransport::GetConnectionState() const {
 void atransport::SetConnectionState(ConnectionState state) {
     check_main_thread();
     connection_state_ = state;
+    update_transports();
 }
 
 void atransport::SetConnection(std::unique_ptr<Connection> connection) {
