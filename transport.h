@@ -491,12 +491,6 @@ asocket* create_device_tracker(bool long_output);
 unique_fd adb_listen(std::string_view addr, std::string* error);
 void server_socket_thread(std::function<unique_fd(std::string_view, std::string*)> listen_func,
                           std::string_view addr);
-
-#if defined(__ANDROID__)
-void qemu_socket_thread(std::string_view addr);
-bool use_qemu_goldfish();
-#endif
-
 #endif
 
 #endif   /* __TRANSPORT_H */
