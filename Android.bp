@@ -511,11 +511,7 @@ cc_library_static {
 
     target: {
         android: {
-            whole_static_libs: [
-                "libqemu_pipe",
-            ],
             srcs: [
-                "daemon/transport_qemu.cpp",
                 "daemon/usb.cpp",
                 "daemon/usb_ffs.cpp",
             ]
