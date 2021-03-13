@@ -93,20 +93,8 @@ unique_fd adb_listen(std::string_view addr, std::string* error) {
 }
 
 void local_init(const std::string& addr) {
-#if !defined(__ANDROID__)
-    // Host adbd.
     D("transport: local server init");
     std::thread(server_socket_thread, adb_listen, addr).detach();
-#else
-    D("transport: local server init");
-    // For the adbd daemon in the system image we need to distinguish
-    // between the device, and the emulator.
-    if (addr.starts_with("tcp:") && use_qemu_goldfish()) {
-        std::thread(qemu_socket_thread, addr).detach();
-    } else {
-        std::thread(server_socket_thread, adb_listen, addr).detach();
-    }
-#endif  // !ADB_HOST
 }
 
 int init_socket_transport(atransport* t, unique_fd fd, int adb_port, int local) {
