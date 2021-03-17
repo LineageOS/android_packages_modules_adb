@@ -57,7 +57,8 @@
 #include "socket_spec.h"
 #include "transport.h"
 
-#include "mdns.h"
+#include "daemon/mdns.h"
+#include "daemon/watchdog.h"
 
 #if defined(__ANDROID__)
 static const char* root_seclabel = nullptr;
@@ -225,6 +226,12 @@ int adbd_main(int server_port) {
 
 #if defined(__ANDROID__)
     drop_privileges(server_port);
+#endif
+
+#if defined(__ANDROID__)
+    // A thread gets spawned as a side-effect of initializing the watchdog, so it needs to happen
+    // after we drop privileges.
+    watchdog::Initialize();
 #endif
 
     // adbd_auth_init will spawn a thread, so we need to defer it until after selinux transitions.
