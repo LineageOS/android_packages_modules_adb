@@ -512,8 +512,10 @@ cc_library_static {
     target: {
         android: {
             srcs: [
+                "daemon/property_monitor.cpp",
                 "daemon/usb.cpp",
                 "daemon/usb_ffs.cpp",
+                "daemon/watchdog.cpp",
             ]
         },
         recovery: {
@@ -788,6 +790,14 @@ cc_test {
     ],
 
     test_config: "adb_test.xml",
+
+    target: {
+        android: {
+            srcs: [
+                "daemon/property_monitor_test.cpp",
+            ],
+        },
+    },
 
     shared_libs: [
         "liblog",
