@@ -34,6 +34,7 @@
 #include "adb_auth.h"
 #include "adb_client.h"
 #include "adb_listeners.h"
+#include "adb_mdns.h"
 #include "adb_utils.h"
 #include "adb_wifi.h"
 #include "client/usb.h"
@@ -67,9 +68,11 @@ void adb_server_cleanup() {
     //   1. close_smartsockets, so that we don't get any new clients
     //   2. kick_all_transports, to avoid writing only part of a packet to a transport.
     //   3. usb_cleanup, to tear down the USB stack.
+    //   4. mdns_cleanup, to tear down mdns stack.
     close_smartsockets();
     kick_all_transports();
     usb_cleanup();
+    mdns_cleanup();
 }
 
 static void intentionally_leak() {
