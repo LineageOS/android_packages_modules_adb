@@ -51,9 +51,9 @@
 #include "adb_auth.h"
 #include "adb_io.h"
 #include "adb_listeners.h"
+#include "adb_mdns.h"
 #include "adb_unique_fd.h"
 #include "adb_utils.h"
-#include "adb_wifi.h"
 #include "sysdeps/chrono.h"
 #include "transport.h"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,24 @@
 
 #pragma once
 
-#include <optional>
 #include <string>
 
-#include "adb.h"
+#include <discovery/dnssd/public/dns_sd_instance_endpoint.h>
+#include <platform/base/ip_address.h>
 
-#if ADB_HOST
+#include "client/mdns_utils.h"
 
-void adb_wifi_init(void);
-void adb_wifi_pair_device(const std::string& host, const std::string& password,
-                          std::string& response);
-bool adb_wifi_is_known_host(const std::string& host);
+namespace mdns {
 
-#else  // !ADB_HOST
+struct ServiceInfo {
+    std::string instance_name;
+    std::string service_name;
+    openscreen::IPAddress v4_address;
+    openscreen::IPAddress v6_address;
+    uint16_t port;
+};  // ServiceInfo
 
-struct AdbdAuthContext;
+openscreen::ErrorOr<ServiceInfo> DnsSdInstanceEndpointToServiceInfo(
+        const openscreen::discovery::DnsSdInstanceEndpoint& endpoint);
 
-void adbd_wifi_init(AdbdAuthContext* ctx);
-void adbd_wifi_secure_connect(atransport* t);
-
-#endif
+}  // namespace mdns
