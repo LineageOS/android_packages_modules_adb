@@ -29,8 +29,8 @@
 #include <cutils/sockets.h>
 
 #include "adb.h"
+#include "adb_mdns.h"
 #include "adb_utils.h"
-#include "adb_wifi.h"
 #include "sysdeps.h"
 
 using namespace std::string_literals;
@@ -197,7 +197,7 @@ bool socket_spec_connect(unique_fd* fd, std::string_view address, int* port, std
         } else {
 #if ADB_HOST
             // Check if the address is an mdns service we can connect to.
-            if (auto mdns_info = mdns_get_connect_service_info(address.substr(4));
+            if (auto mdns_info = mdns_get_connect_service_info(std::string(address.substr(4)));
                 mdns_info != std::nullopt) {
                 fd->reset(network_connect(mdns_info->addr, mdns_info->port, SOCK_STREAM, 0, error));
                 if (fd->get() != -1) {
