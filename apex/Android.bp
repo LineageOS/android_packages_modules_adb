@@ -10,7 +10,6 @@ package {
 apex_defaults {
     name: "com.android.adbd-defaults",
     updatable: true,
-    min_sdk_version: "30",
 
     binaries: ["adbd"],
     compile_multilib: "both",
@@ -42,9 +41,11 @@ library_linking_strategy_apex_defaults {
         library_linking_strategy: {
             prefer_static: {
                 manifest: "apex_manifest.json",
+                min_sdk_version: "30",
             },
             conditions_default: {
                 manifest: "apex_manifest_version.json",
+                min_sdk_version: "current",
             },
         },
     },
@@ -63,6 +64,7 @@ apex_test {
     name: "test_com.android.adbd",
     defaults: ["com.android.adbd-defaults"],
     manifest: "test_apex_manifest.json",
+    min_sdk_version: "30",
     file_contexts: ":com.android.adbd-file_contexts",
     installable: false,
 }
