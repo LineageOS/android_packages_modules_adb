@@ -185,6 +185,9 @@ class ResolvedService : public AsyncServiceRef {
             return;
         }
 
+        // Remove any services with the same instance name, as it may be a stale registration.
+        RemoveDNSService(service->reg_type(), service->service_name());
+
         ServiceRegistry* services = nullptr;
         switch (*service_index) {
             case kADBTransportServiceRefIndex:
@@ -207,8 +210,6 @@ class ResolvedService : public AsyncServiceRef {
 
         auto reg_type = s->reg_type();
         auto service_name = s->service_name();
-        // Remove any services with the same instance name, as it may be a stale registration.
-        RemoveDNSService(reg_type, service_name);
 
         auto ip_addr = s->ip_address();
         auto port = s->port();
