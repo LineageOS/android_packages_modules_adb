@@ -64,6 +64,10 @@ cc_defaults {
                 "-framework IOKit",
                 "-lobjc",
             ],
+            cflags: [
+                // Required, to use the new IPv6 Sockets options introduced by RFC 3542.
+                "-D__APPLE_USE_RFC_3542",
+            ],
         },
 
         windows: {
