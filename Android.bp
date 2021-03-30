@@ -849,6 +849,9 @@ python_test_host {
             enabled: true,
         },
     },
+    test_options: {
+        unit_test: false,
+    },
 }
 
 python_test_host {
@@ -869,6 +872,9 @@ python_test_host {
         py3: {
             enabled: true,
         },
+    },
+    test_options: {
+        unit_test: false,
     },
 }
 
