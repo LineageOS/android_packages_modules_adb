@@ -42,11 +42,13 @@
 
 #include <android-base/logging.h>
 #include <android-base/macros.h>
+#include <android-base/parsebool.h>
 #include <android-base/properties.h>
 #include <android-base/thread_annotations.h>
 
 #include "adb_unique_fd.h"
 #include "adb_utils.h"
+#include "daemon/property_monitor.h"
 #include "daemon/usb_ffs.h"
 #include "sysdeps/chrono.h"
 #include "transport.h"
@@ -740,7 +742,27 @@ struct UsbFfsConnection : public Connection {
 static void usb_ffs_open_thread() {
     adb_thread_setname("usb ffs open");
 
+    // When the device is acting as a USB host, we'll be unable to bind to the USB gadget on kernels
+    // that don't carry a downstream patch to enable that behavior.
+    //
+    // This property is copied from vendor.sys.usb.adb.disabled by an init.rc script.
+    //
+    // Note that this property only disables rebinding the USB gadget: setting it while an interface
+    // is already bound will do nothing.
+    static const char* kPropertyUsbDisabled = "sys.usb.adb.disabled";
+    PropertyMonitor prop_mon;
+    prop_mon.Add(kPropertyUsbDisabled, [](std::string value) {
+        // Return false (i.e. break out of PropertyMonitor::Run) when the property != 1.
+        return android::base::ParseBool(value) == android::base::ParseBoolResult::kTrue;
+    });
+
     while (true) {
+        if (android::base::GetBoolProperty(kPropertyUsbDisabled, false)) {
+            LOG(INFO) << "pausing USB due to " << kPropertyUsbDisabled;
+            prop_mon.Run();
+            LOG(INFO) << "resuming USB";
+        }
+
         unique_fd control;
         unique_fd bulk_out;
         unique_fd bulk_in;
