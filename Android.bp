@@ -829,7 +829,7 @@ cc_test {
         "libcrypto_utils",
         "libusb",
     ],
-    test_suites: ["device-tests", "mts-adbd"],
+    test_suites: ["general-tests", "mts-adbd"],
     require_root: true,
 }
 
