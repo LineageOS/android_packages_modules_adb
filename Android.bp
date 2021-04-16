@@ -153,6 +153,7 @@ library_linking_strategy_cc_defaults {
         "libadbconnection_server",
         "libasyncio",
         "libbrotli",
+        "libcrypto_utils",
         "libcutils_sockets",
         "libdiagnose_usb",
         "libmdnssd",
@@ -166,8 +167,6 @@ library_linking_strategy_cc_defaults {
     shared_libs: [
         "libadbd_auth",
         "libadbd_fs",
-        "libcrypto",
-        "libcrypto_utils",
         "liblog",
         "libselinux",
     ],
@@ -188,6 +187,12 @@ library_linking_strategy_cc_defaults {
     },
 
     target: {
+        android: {
+            shared_libs: ["libcrypto"],
+        },
+        linux_glibc: {
+            static_libs: ["libcrypto_static"],
+        },
         recovery: {
             exclude_static_libs: [
                 "libadb_pairing_auth",
