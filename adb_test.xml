@@ -17,6 +17,7 @@
 <configuration description="Runs adbd_test.">
     <option name="test-suite-tag" value="apct" />
     <option name="test-suite-tag" value="apct-native" />
+    <option name="config-descriptor:metadata" key="mainline-param" value="com.google.android.adbd.apex" />
 
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer">
     </target_preparer>
