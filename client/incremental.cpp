@@ -58,10 +58,16 @@ static std::pair<unique_fd, std::vector<char>> read_signature(Size file_size,
     auto [signature, tree_size] = read_id_sig_headers(fd);
 
     std::vector<char> invalid_signature;
+    if (signature.empty()) {
+        if (!silent) {
+            fprintf(stderr, "Invalid signature format. Abort.\n");
+        }
+        return {std::move(fd), std::move(invalid_signature)};
+    }
     if (signature.size() > kMaxSignatureSize) {
         if (!silent) {
-            fprintf(stderr, "Signature is too long. Max allowed is %d. Abort.\n",
-                    kMaxSignatureSize);
+            fprintf(stderr, "Signature is too long: %lld. Max allowed is %d. Abort.\n",
+                    (long long)signature.size(), kMaxSignatureSize);
         }
         return {std::move(fd), std::move(invalid_signature)};
     }
