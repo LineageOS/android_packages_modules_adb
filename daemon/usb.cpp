@@ -51,6 +51,7 @@
 #include "daemon/property_monitor.h"
 #include "daemon/usb_ffs.h"
 #include "sysdeps/chrono.h"
+#include "transfer_id.h"
 #include "transport.h"
 #include "types.h"
 
@@ -83,38 +84,6 @@ static const char* to_string(enum usb_functionfs_event_type type) {
             return "FUNCTIONFS_RESUME";
     }
 }
-
-enum class TransferDirection : uint64_t {
-    READ = 0,
-    WRITE = 1,
-};
-
-struct TransferId {
-    TransferDirection direction : 1;
-    uint64_t id : 63;
-
-    TransferId() : TransferId(TransferDirection::READ, 0) {}
-
-  private:
-    TransferId(TransferDirection direction, uint64_t id) : direction(direction), id(id) {}
-
-  public:
-    explicit operator uint64_t() const {
-        uint64_t result;
-        static_assert(sizeof(*this) == sizeof(result));
-        memcpy(&result, this, sizeof(*this));
-        return result;
-    }
-
-    static TransferId read(uint64_t id) { return TransferId(TransferDirection::READ, id); }
-    static TransferId write(uint64_t id) { return TransferId(TransferDirection::WRITE, id); }
-
-    static TransferId from_value(uint64_t value) {
-        TransferId result;
-        memcpy(&result, &value, sizeof(value));
-        return result;
-    }
-};
 
 template <class Payload>
 struct IoBlock {
