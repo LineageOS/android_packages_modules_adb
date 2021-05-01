@@ -39,6 +39,10 @@ struct TransferId {
     constexpr TransferId(TransferDirection direction, uint64_t id) : direction(direction), id(id) {}
 
   public:
+    bool operator==(const TransferId& rhs) const {
+        return static_cast<uint64_t>(*this) == static_cast<uint64_t>(rhs);
+    }
+
     constexpr explicit operator uint64_t() const {
         return static_cast<uint64_t>(direction) << 63 | id;
     }
@@ -61,4 +65,9 @@ struct TransferId {
     }
 };
 
+namespace std {
+template <>
+struct hash<TransferId> {
+    size_t operator()(TransferId id) const { return hash<uint64_t>()(static_cast<uint64_t>(id)); }
+};
 }  // namespace std
