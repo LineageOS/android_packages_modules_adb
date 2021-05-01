@@ -289,7 +289,7 @@ class atransport : public enable_weak_from_this<atransport> {
     ConnectionState GetConnectionState() const;
     void SetConnectionState(ConnectionState state);
 
-    void SetConnection(std::unique_ptr<Connection> connection);
+    void SetConnection(std::shared_ptr<Connection> connection);
     std::shared_ptr<Connection> connection() {
         std::lock_guard<std::mutex> lock(mutex_);
         return connection_;
@@ -343,9 +343,7 @@ class atransport : public enable_weak_from_this<atransport> {
     int get_protocol_version() const;
     size_t get_max_payload() const;
 
-    const FeatureSet& features() const {
-        return features_;
-    }
+    const FeatureSet& features() const { return features_; }
 
     bool has_feature(const std::string& feature) const;
 
@@ -463,6 +461,9 @@ void register_transport(atransport* transport);
 
 #if ADB_HOST
 void init_usb_transport(atransport* t, usb_handle* usb);
+
+void register_usb_transport(std::shared_ptr<Connection> connection, const char* serial,
+                            const char* devpath, unsigned writeable);
 void register_usb_transport(usb_handle* h, const char* serial, const char* devpath,
                             unsigned writeable);
 
@@ -493,4 +494,4 @@ void server_socket_thread(std::function<unique_fd(std::string_view, std::string*
                           std::string_view addr);
 #endif
 
-#endif   /* __TRANSPORT_H */
+#endif /* __TRANSPORT_H */

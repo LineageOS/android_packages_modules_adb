@@ -43,8 +43,6 @@
 #include "sysdeps/chrono.h"
 #include "transport.h"
 
-namespace native {
-
 /** Structure usb_handle describes our connection to the usb device via
   AdbWinApi.dll. This structure is returned from usb_open() routine and
   is expected in each subsequent call that is accessing the device.
@@ -53,7 +51,7 @@ namespace native {
   rely on AdbWinApi.dll's handle validation and AdbCloseHandle(endpoint)'s
   ability to break a thread out of pipe IO.
 */
-struct usb_handle : public ::usb_handle {
+struct usb_handle {
     /// Handle to USB interface
     ADBAPIHANDLE adb_interface;
 
@@ -617,5 +615,3 @@ static void kick_devices() {
         usb_kick_locked(usb);
     }
 }
-
-}  // namespace native
