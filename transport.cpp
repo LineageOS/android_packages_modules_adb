@@ -1124,7 +1124,7 @@ void atransport::SetConnectionState(ConnectionState state) {
     update_transports();
 }
 
-void atransport::SetConnection(std::unique_ptr<Connection> connection) {
+void atransport::SetConnection(std::shared_ptr<Connection> connection) {
     std::lock_guard<std::mutex> lock(mutex_);
     connection_ = std::shared_ptr<Connection>(std::move(connection));
 }
@@ -1467,6 +1467,27 @@ void kick_all_tcp_devices() {
         }
     }
     reconnect_handler.CheckForKicked();
+}
+
+void register_usb_transport(std::shared_ptr<Connection> connection, const char* serial,
+                            const char* devpath, unsigned writeable) {
+    atransport* t = new atransport(writeable ? kCsOffline : kCsNoPerm);
+    if (serial) {
+        t->serial = serial;
+    }
+    if (devpath) {
+        t->devpath = devpath;
+    }
+
+    t->SetConnection(std::move(connection));
+    t->type = kTransportUsb;
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(transport_lock);
+        pending_list.push_front(t);
+    }
+
+    register_transport(t);
 }
 
 void register_usb_transport(usb_handle* usb, const char* serial, const char* devpath,

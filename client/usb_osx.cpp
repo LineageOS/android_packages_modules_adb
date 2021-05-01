@@ -47,7 +47,6 @@
 
 using namespace std::chrono_literals;
 
-namespace native {
 struct usb_handle
 {
     UInt8 bulkIn;
@@ -588,5 +587,3 @@ void usb_kick(usb_handle *handle) {
 size_t usb_get_max_packet_size(usb_handle* handle) {
     return handle->max_packet_size;
 }
-
-} // namespace native
