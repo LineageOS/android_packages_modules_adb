@@ -33,27 +33,17 @@
     void usb_kick(handle_ref_type h);                            \
     size_t usb_get_max_packet_size(handle_ref_type)
 
-// Linux and Darwin clients have native and libusb implementations.
-
-namespace libusb {
 struct usb_handle;
-ADB_USB_INTERFACE(libusb::usb_handle*);
-}  // namespace libusb
-
-namespace native {
-struct usb_handle;
-ADB_USB_INTERFACE(native::usb_handle*);
-}  // namespace native
-
-// Empty base that both implementations' opaque handles inherit from.
-struct usb_handle {};
-
-ADB_USB_INTERFACE(::usb_handle*);
+ADB_USB_INTERFACE(usb_handle*);
 
 // USB device detection.
 int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol);
 
 bool should_use_libusb();
+
+namespace libusb {
+void usb_init();
+}
 
 struct UsbConnection : public BlockingConnection {
     explicit UsbConnection(usb_handle* handle) : handle_(handle) {}
