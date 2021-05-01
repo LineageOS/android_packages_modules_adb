@@ -270,7 +270,6 @@ cc_library_host_static {
         "client/auth.cpp",
         "client/adb_wifi.cpp",
         "client/usb_libusb.cpp",
-        "client/usb_dispatch.cpp",
         "client/transport_local.cpp",
         "client/mdnsresponder_client.cpp",
         "client/mdns_utils.cpp",
