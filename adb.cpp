@@ -1260,6 +1260,14 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
             return HostRequestResult::Handled;
         }
 
+        // Mdns instance named device
+        atransport* t = find_transport(address.c_str());
+        if (t != nullptr) {
+            kick_transport(t);
+            SendOkay(reply_fd, android::base::StringPrintf("disconnected %s", address.c_str()));
+            return HostRequestResult::Handled;
+        }
+
         std::string serial;
         std::string host;
         int port = DEFAULT_ADB_LOCAL_TRANSPORT_PORT;
@@ -1271,7 +1279,7 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
                                                            address.c_str(), error.c_str()));
             return HostRequestResult::Handled;
         }
-        atransport* t = find_transport(serial.c_str());
+        t = find_transport(serial.c_str());
         if (t == nullptr) {
             SendFail(reply_fd, android::base::StringPrintf("no such device '%s'", serial.c_str()));
             return HostRequestResult::Handled;
