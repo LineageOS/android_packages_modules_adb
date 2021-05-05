@@ -222,7 +222,12 @@ bool socket_spec_connect(unique_fd* fd, std::string_view address, int* port, std
         }
 
         if (fd->get() > 0) {
-            set_tcp_keepalive(fd->get(), 1);
+            int keepalive_interval = 1;
+            if (const char* keepalive_env = getenv("ADB_TCP_KEEPALIVE_INTERVAL")) {
+                android::base::ParseInt(keepalive_env, &keepalive_interval, 0);
+            }
+
+            set_tcp_keepalive(fd->get(), keepalive_interval);
             disable_tcp_nagle(fd->get());
             if (port) {
                 *port = port_value;
