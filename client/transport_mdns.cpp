@@ -276,6 +276,10 @@ bool adb_secure_connect_by_service_name(const std::string& instance_name) {
 }
 
 std::string mdns_check() {
+    if (!g_state && !g_using_bonjour) {
+        return "ERROR: mdns discovery disabled";
+    }
+
     if (g_using_bonjour) {
         return g_adb_mdnsresponder_funcs.mdns_check();
     }
