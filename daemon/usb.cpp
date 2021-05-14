@@ -496,15 +496,29 @@ struct UsbFfsConnection : public Connection {
             TransferId id = TransferId::from_value(event.data);
 
             if (event.res < 0) {
-                std::string error =
-                        StringPrintf("%s %" PRIu64 " failed with error %s",
-                                     id.direction == TransferDirection::READ ? "read" : "write",
-                                     id.id, strerror(-event.res));
-                HandleError(error);
-                return;
+                // On initial connection, some clients will send a ClearFeature(HALT) to
+                // attempt to resynchronize host and device after the adb server is killed.
+                // On newer device kernels, the reads we've already dispatched will be cancelled.
+                // Instead of treating this as a failure, which will tear down the interface and
+                // lead to the client doing the same thing again, just resubmit if this happens
+                // before we've actually read anything.
+                if (!connection_started_ && event.res == -EPIPE &&
+                    id.direction == TransferDirection::READ) {
+                    uint64_t read_idx = id.id % kUsbReadQueueDepth;
+                    SubmitRead(&read_requests_[read_idx]);
+                    continue;
+                } else {
+                    std::string error =
+                            StringPrintf("%s %" PRIu64 " failed with error %s",
+                                         id.direction == TransferDirection::READ ? "read" : "write",
+                                         id.id, strerror(-event.res));
+                    HandleError(error);
+                    return;
+                }
             }
 
             if (id.direction == TransferDirection::READ) {
+                connection_started_ = true;
                 if (!HandleRead(id, event.res)) {
                     return;
                 }
@@ -688,6 +702,7 @@ struct UsbFfsConnection : public Connection {
     unique_fd read_fd_;
     unique_fd write_fd_;
 
+    bool connection_started_ = false;
     std::optional<amessage> incoming_header_;
     IOVector incoming_payload_;
 
