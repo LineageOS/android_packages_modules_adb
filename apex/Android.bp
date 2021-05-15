@@ -25,6 +25,7 @@ apex_defaults {
     },
     prebuilts: ["com.android.adbd.init.rc"],
 
+    manifest: "apex_manifest.json",
     key: "com.android.adbd.key",
     certificate: ":com.android.adbd.certificate",
 }
@@ -40,11 +41,9 @@ library_linking_strategy_apex_defaults {
     soong_config_variables: {
         library_linking_strategy: {
             prefer_static: {
-                manifest: "apex_manifest.json",
                 min_sdk_version: "30",
             },
             conditions_default: {
-                manifest: "apex_manifest_version.json",
                 min_sdk_version: "current",
             },
         },
