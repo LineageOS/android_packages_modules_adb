@@ -134,3 +134,27 @@ TEST(IOVector, drop_front) {
     ASSERT_EQ(1000U, vec.front_size());
     ASSERT_EQ(1000U, vec.size());
 }
+
+TEST(IOVector, take_front) {
+    IOVector vec;
+    ASSERT_TRUE(vec.take_front(0).empty());
+
+    vec.append(create_block('x', 2));
+    ASSERT_EQ(2ULL, vec.size());
+
+    ASSERT_EQ(1ULL, vec.take_front(1).size());
+    ASSERT_EQ(1ULL, vec.size());
+
+    ASSERT_EQ(1ULL, vec.take_front(1).size());
+    ASSERT_EQ(0ULL, vec.size());
+}
+
+TEST(IOVector, trim_front) {
+    IOVector vec;
+    vec.append(create_block('x', 2));
+
+    ASSERT_EQ(1ULL, vec.take_front(1).size());
+    ASSERT_EQ(1ULL, vec.size());
+    vec.trim_front();
+    ASSERT_EQ(1ULL, vec.size());
+}
