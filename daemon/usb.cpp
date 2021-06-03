@@ -741,18 +741,18 @@ static void usb_ffs_open_thread() {
     });
 
     while (true) {
-        if (android::base::GetBoolProperty(kPropertyUsbDisabled, false)) {
-            LOG(INFO) << "pausing USB due to " << kPropertyUsbDisabled;
-            prop_mon.Run();
-            LOG(INFO) << "resuming USB";
-        }
-
         unique_fd control;
         unique_fd bulk_out;
         unique_fd bulk_in;
         if (!open_functionfs(&control, &bulk_out, &bulk_in)) {
             std::this_thread::sleep_for(1s);
             continue;
+        }
+
+        if (android::base::GetBoolProperty(kPropertyUsbDisabled, false)) {
+            LOG(INFO) << "pausing USB due to " << kPropertyUsbDisabled;
+            prop_mon.Run();
+            LOG(INFO) << "resuming USB";
         }
 
         atransport* transport = new atransport();
