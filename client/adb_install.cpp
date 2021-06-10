@@ -931,7 +931,7 @@ int install_multi_package(int argc, const char** argv) {
 finalize_multi_package_session:
     // Commit session if we streamed everything okay; otherwise abandon
     std::vector<std::string> service_args;
-    if (success) {
+    if (success == 0) {
         service_args.push_back(install_cmd);
         service_args.push_back("install-commit");
         // If successful, we need to forward args to install-commit
