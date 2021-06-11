@@ -930,11 +930,22 @@ int install_multi_package(int argc, const char** argv) {
 
 finalize_multi_package_session:
     // Commit session if we streamed everything okay; otherwise abandon
-    std::vector<std::string> service_args = {
-            install_cmd,
-            success == 0 ? "install-commit" : "install-abandon",
-            parent_session_id_str,
-    };
+    std::vector<std::string> service_args;
+    if (success == 0) {
+        service_args.push_back(install_cmd);
+        service_args.push_back("install-commit");
+        // If successful, we need to forward args to install-commit
+        for (int i = 1; i < first_package - 1; i++) {
+            if (strcmp(argv[i], "--staged-ready-timeout") == 0) {
+                service_args.push_back(argv[i]);
+                service_args.push_back(argv[i + 1]);
+                i++;
+            }
+        }
+        service_args.push_back(parent_session_id_str);
+    } else {
+        service_args = {install_cmd, "install-abandon", parent_session_id_str};
+    }
 
     {
         unique_fd fd = send_command(service_args, &error);
