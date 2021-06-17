@@ -123,7 +123,7 @@ struct LibusbConnection : public Connection {
         if (payload) {
             packet->payload = std::move(*payload);
         }
-        read_callback_(this, std::move(packet));
+        transport_->HandleRead(std::move(packet));
     }
 
     void Cleanup(ReadBlock* read_block) REQUIRES(read_mutex_) {
@@ -553,8 +553,8 @@ struct LibusbConnection : public Connection {
 
     void OnError(const std::string& error) {
         std::call_once(error_flag_, [this, &error]() {
-            if (error_callback_) {
-                error_callback_(this, error);
+            if (transport_) {
+                transport_->HandleError(error);
             }
         });
     }

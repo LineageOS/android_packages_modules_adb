@@ -106,22 +106,7 @@ struct Connection {
     Connection() = default;
     virtual ~Connection() = default;
 
-    void SetTransportName(std::string transport_name) {
-        transport_name_ = std::move(transport_name);
-    }
-
-    using ReadCallback = std::function<bool(Connection*, std::unique_ptr<apacket>)>;
-    void SetReadCallback(ReadCallback callback) {
-        CHECK(!read_callback_);
-        read_callback_ = callback;
-    }
-
-    // Called after the Connection has terminated, either by an error or because Stop was called.
-    using ErrorCallback = std::function<void(Connection*, const std::string&)>;
-    void SetErrorCallback(ErrorCallback callback) {
-        CHECK(!error_callback_);
-        error_callback_ = callback;
-    }
+    void SetTransport(atransport* transport) { transport_ = transport; }
 
     virtual bool Write(std::unique_ptr<apacket> packet) = 0;
 
@@ -133,9 +118,9 @@ struct Connection {
     // Stop, and reset the device if it's a USB connection.
     virtual void Reset();
 
-    std::string transport_name_;
-    ReadCallback read_callback_;
-    ErrorCallback error_callback_;
+    std::string Serial() const;
+
+    atransport* transport_ = nullptr;
 
     static std::unique_ptr<Connection> FromFd(unique_fd fd);
 };
@@ -294,6 +279,9 @@ class atransport : public enable_weak_from_this<atransport> {
         std::lock_guard<std::mutex> lock(mutex_);
         return connection_;
     }
+
+    bool HandleRead(std::unique_ptr<apacket> p);
+    void HandleError(const std::string& error);
 
 #if ADB_HOST
     void SetUsbHandle(usb_handle* h) { usb_handle_ = h; }
