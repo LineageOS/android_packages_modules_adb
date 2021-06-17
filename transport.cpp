@@ -55,6 +55,10 @@
 #include "fdevent/fdevent.h"
 #include "sysdeps/chrono.h"
 
+#if ADB_HOST
+#include "client/usb.h"
+#endif
+
 using namespace adb::crypto;
 using namespace adb::tls;
 using android::base::ScopedLockAssertion;
@@ -762,6 +766,16 @@ static int transport_write_action(int fd, struct tmsg* m) {
     return 0;
 }
 
+static bool usb_devices_start_detached() {
+#if ADB_HOST
+    static const char* env = getenv("ADB_LIBUSB_START_DETACHED");
+    static bool result = env && strcmp("1", env) == 0;
+    return should_use_libusb() && result;
+#else
+    return false;
+#endif
+}
+
 static void transport_registration_func(int _fd, unsigned ev, void*) {
     tmsg m;
     atransport* t;
@@ -793,10 +807,15 @@ static void transport_registration_func(int _fd, unsigned ev, void*) {
     /* don't create transport threads for inaccessible devices */
     if (t->GetConnectionState() != kCsNoPerm) {
         t->connection()->SetTransport(t);
-        t->connection()->Start();
+
+        if (t->type == kTransportUsb && usb_devices_start_detached()) {
+            t->SetConnectionState(kCsDetached);
+        } else {
+            t->connection()->Start();
 #if ADB_HOST
-        send_connect(t);
+            send_connect(t);
 #endif
+        }
     }
 
     {
@@ -1101,6 +1120,62 @@ void atransport::SetConnectionState(ConnectionState state) {
     update_transports();
 }
 
+#if ADB_HOST
+bool atransport::Attach(std::string* error) {
+    D("%s: attach", serial.c_str());
+    check_main_thread();
+
+    if (!should_use_libusb()) {
+        *error = "attach/detach only implemented for libusb backend";
+        return false;
+    }
+
+    if (GetConnectionState() != ConnectionState::kCsDetached) {
+        *error = android::base::StringPrintf("transport %s is not detached", serial.c_str());
+        return false;
+    }
+
+    ResetKeys();
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!connection_->Attach(error)) {
+            return false;
+        }
+    }
+
+    send_connect(this);
+    return true;
+}
+
+bool atransport::Detach(std::string* error) {
+    D("%s: detach", serial.c_str());
+    check_main_thread();
+
+    if (!should_use_libusb()) {
+        *error = "attach/detach only implemented for libusb backend";
+        return false;
+    }
+
+    if (GetConnectionState() == ConnectionState::kCsDetached) {
+        *error = android::base::StringPrintf("transport %s is already detached", serial.c_str());
+        return false;
+    }
+
+    handle_offline(this);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!connection_->Detach(error)) {
+            return false;
+        }
+    }
+
+    this->SetConnectionState(kCsDetached);
+    return true;
+}
+#endif
+
 void atransport::SetConnection(std::shared_ptr<Connection> connection) {
     std::lock_guard<std::mutex> lock(mutex_);
     connection_ = std::shared_ptr<Connection>(std::move(connection));
@@ -1153,6 +1228,8 @@ std::string atransport::connection_state_name() const {
             return "authorizing";
         case kCsConnecting:
             return "connecting";
+        case kCsDetached:
+            return "detached";
         default:
             return "unknown";
     }

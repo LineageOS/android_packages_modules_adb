@@ -118,6 +118,16 @@ struct Connection {
     // Stop, and reset the device if it's a USB connection.
     virtual void Reset();
 
+    virtual bool Attach(std::string* error) {
+        *error = "transport type doesn't support attach";
+        return false;
+    }
+
+    virtual bool Detach(std::string* error) {
+        *error = "transport type doesn't support detach";
+        return false;
+    }
+
     std::string Serial() const;
 
     atransport* transport_ = nullptr;
@@ -341,6 +351,11 @@ class atransport : public enable_weak_from_this<atransport> {
     void AddDisconnect(adisconnect* disconnect);
     void RemoveDisconnect(adisconnect* disconnect);
     void RunDisconnects();
+
+#if ADB_HOST
+    bool Attach(std::string* error);
+    bool Detach(std::string* error);
+#endif
 
 #if ADB_HOST
     // Returns true if |target| matches this transport. A matching |target| can be any of:

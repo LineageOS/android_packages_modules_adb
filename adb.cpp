@@ -1360,6 +1360,52 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
         return HostRequestResult::Handled;
     }
 
+    if (service == "attach") {
+        std::string error;
+        atransport* t = s->transport ? s->transport
+                                     : acquire_one_transport(type, serial, transport_id, nullptr,
+                                                             &error, true);
+        if (!t) {
+            SendFail(reply_fd, error);
+            return HostRequestResult::Handled;
+        }
+
+        if (t->Attach(&error)) {
+            SendOkay(reply_fd,
+                     android::base::StringPrintf("%s attached", t->serial_name().c_str()));
+        } else {
+            SendFail(reply_fd, error);
+        }
+        return HostRequestResult::Handled;
+    }
+
+    if (service == "detach") {
+        std::string error;
+        atransport* t = s->transport ? s->transport
+                                     : acquire_one_transport(type, serial, transport_id, nullptr,
+                                                             &error, true);
+        if (!t) {
+            SendFail(reply_fd, error);
+            return HostRequestResult::Handled;
+        }
+
+        // HACK:
+        // Detaching the transport will lead to all of its sockets being closed,
+        // but we're handling one of those sockets right now!
+        //
+        // Mark the socket as not having a transport, knowing that it'll be cleaned up by the
+        // function that called us.
+        s->transport = nullptr;
+
+        if (t->Detach(&error)) {
+            SendOkay(reply_fd,
+                     android::base::StringPrintf("%s detached", t->serial_name().c_str()));
+        } else {
+            SendFail(reply_fd, error);
+        }
+        return HostRequestResult::Handled;
+    }
+
     // TODO: Switch handle_forward_request to string_view.
     std::string service_str(service);
     auto transport_acquirer = [=](std::string* error) {
