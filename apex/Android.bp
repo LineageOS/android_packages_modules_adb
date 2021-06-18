@@ -28,7 +28,6 @@ apex_defaults {
     manifest: "apex_manifest.json",
     key: "com.android.adbd.key",
     certificate: ":com.android.adbd.certificate",
-    min_sdk_version: "30",
 }
 
 soong_config_module_type_import {
@@ -64,6 +63,7 @@ apex_test {
     name: "test_com.android.adbd",
     defaults: ["com.android.adbd-defaults"],
     manifest: "test_apex_manifest.json",
+    min_sdk_version: "30",
     file_contexts: ":com.android.adbd-file_contexts",
     installable: false,
 }
