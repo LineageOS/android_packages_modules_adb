@@ -76,22 +76,22 @@ using unique_device_handle = std::unique_ptr<libusb_device_handle, DeviceHandleD
 static void process_device(libusb_device* device_raw);
 
 static std::string get_device_address(libusb_device* device) {
-    return StringPrintf("usb:%d:%d", libusb_get_bus_number(device),
-                        libusb_get_device_address(device));
-}
-
-#if defined(__linux__)
-static std::string get_device_serial_path(libusb_device* device) {
     uint8_t ports[7];
     int port_count = libusb_get_port_numbers(device, ports, 7);
     if (port_count < 0) return "";
 
-    std::string path =
-            StringPrintf("/sys/bus/usb/devices/%d-%d", libusb_get_bus_number(device), ports[0]);
+    std::string address = StringPrintf("%d-%d", libusb_get_bus_number(device), ports[0]);
     for (int port = 1; port < port_count; ++port) {
-        path += StringPrintf(".%d", ports[port]);
+        address += StringPrintf(".%d", ports[port]);
     }
-    path += "/serial";
+
+    return address;
+}
+
+#if defined(__linux__)
+static std::string get_device_serial_path(libusb_device* device) {
+    std::string address = get_device_address(device);
+    std::string path = StringPrintf("/sys/bus/usb/devices/%s/serial", address.c_str());
     return path;
 }
 #endif
