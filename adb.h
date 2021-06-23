@@ -104,6 +104,7 @@ enum ConnectionState {
     kCsAuthorizing,     // Authorizing with keys from ADB_VENDOR_KEYS.
     kCsUnauthorized,    // ADB_VENDOR_KEYS exhausted, fell back to user prompt.
     kCsNoPerm,          // Insufficient permissions to communicate with the device.
+    kCsDetached,        // USB device that's detached from the adb server.
     kCsOffline,
 
     kCsBootloader,
