@@ -51,7 +51,7 @@ bool adb_command(const std::string& service);
 // Connects to the named adb service and fills 'result' with the response.
 // Returns true on success; returns false and fills 'error' on failure.
 bool adb_query(const std::string& service, std::string* _Nonnull result,
-               std::string* _Nonnull error);
+               std::string* _Nonnull error, bool force_switch_device = false);
 
 // Set the preferred transport to connect to.
 void adb_set_transport(TransportType type, const char* _Nullable serial, TransportId transport_id);

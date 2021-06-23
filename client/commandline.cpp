@@ -234,6 +234,10 @@ static void help() {
         " reconnect device         kick connection from device side to force reconnect\n"
         " reconnect offline        reset offline/unauthorized devices to force reconnect\n"
         "\n"
+        "usb:\n"
+        " attach                   attach a detached USB device\n"
+        " detach                   detach from a USB device to allow use by other processes\n"
+        ""
         "environment variables:\n"
         " $ADB_TRACE\n"
         "     comma-separated list of debug info to log:\n"
@@ -2162,6 +2166,15 @@ int adb_commandline(int argc, const char** argv) {
         output_fd = adb_register_socket(output_fd);
         close_on_exec(output_fd);
         return incremental::serve(connection_fd, output_fd, argc - 3, argv + 3);
+    } else if (!strcmp(argv[0], "attach") || !strcmp(argv[0], "detach")) {
+        const char* service = strcmp(argv[0], "attach") == 0 ? "host:attach" : "host:detach";
+        std::string result;
+        std::string error;
+        if (!adb_query(service, &result, &error, true)) {
+            error_exit("failed to %s: %s", argv[0], error.c_str());
+        }
+        printf("%s\n", result.c_str());
+        return 0;
     }
 
     error_exit("unknown command %s", argv[0]);

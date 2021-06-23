@@ -383,9 +383,10 @@ bool adb_command(const std::string& service) {
     return true;
 }
 
-bool adb_query(const std::string& service, std::string* result, std::string* error) {
+bool adb_query(const std::string& service, std::string* result, std::string* error,
+               bool force_switch_device) {
     D("adb_query: %s", service.c_str());
-    unique_fd fd(adb_connect(service, error));
+    unique_fd fd(adb_connect(nullptr, service, error, force_switch_device));
     if (fd < 0) {
         return false;
     }
