@@ -65,6 +65,7 @@
 
 using android::base::borrowed_fd;
 using android::base::Dirname;
+using android::base::Realpath;
 using android::base::StringPrintf;
 
 static bool should_use_fs_config(const std::string& path) {
@@ -369,8 +370,16 @@ static bool handle_send_file(borrowed_fd s, const char* path, uint32_t* timestam
             goto fail;
         } else {
             if (fchown(fd.get(), uid, gid) == -1) {
-                SendSyncFailErrno(s, "fchown failed");
-                goto fail;
+                struct stat st;
+                std::string real_path;
+
+                // Only return failure if parent directory does not have S_ISGID bit set,
+                // if S_ISGID is set then file will inherit groupid from directory
+                if (!Realpath(path, &real_path) || lstat(Dirname(real_path).c_str(), &st) == -1 ||
+                    (S_ISDIR(st.st_mode) && (st.st_mode & S_ISGID) == 0)) {
+                    SendSyncFailErrno(s, "fchown failed");
+                    goto fail;
+                }
             }
 
 #if defined(__ANDROID__)
