@@ -756,8 +756,8 @@ phony {
 phony {
     name: "adbd_system_api_recovery",
     required: [
-        "libadbd_auth",
-        "libadbd_fs",
+        "libadbd_auth.recovery",
+        "libadbd_fs.recovery",
         "reboot.recovery",
     ],
 }
