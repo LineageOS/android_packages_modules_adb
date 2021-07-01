@@ -28,6 +28,7 @@ apex_defaults {
     manifest: "apex_manifest.json",
     key: "com.android.adbd.key",
     certificate: ":com.android.adbd.certificate",
+    compressible: true,
 }
 
 soong_config_module_type_import {
