@@ -95,6 +95,8 @@ adb -s $REMOTE raw source:10485760 | dd of=/dev/null bs=1024 count=10240
 
 # Dump traces again.
 adb disconnect $REMOTE
+
+sleep 5
 adb shell killall -37 adbd
 
 echo Waiting for adbd to finish dumping traces
