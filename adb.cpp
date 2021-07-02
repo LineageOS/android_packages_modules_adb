@@ -45,6 +45,8 @@
 #include <android-base/parsenetaddress.h>
 #include <android-base/stringprintf.h>
 #include <android-base/strings.h>
+#include <diagnose_usb.h>
+
 #include <build/version.h>
 #include <platform_tools_version.h>
 
@@ -108,8 +110,36 @@ uint32_t calculate_apacket_checksum(const apacket* p) {
     return sum;
 }
 
-apacket* get_apacket(void)
-{
+std::string to_string(ConnectionState state) {
+    switch (state) {
+        case kCsOffline:
+            return "offline";
+        case kCsBootloader:
+            return "bootloader";
+        case kCsDevice:
+            return "device";
+        case kCsHost:
+            return "host";
+        case kCsRecovery:
+            return "recovery";
+        case kCsRescue:
+            return "rescue";
+        case kCsNoPerm:
+            return UsbNoPermissionsShortHelpText();
+        case kCsSideload:
+            return "sideload";
+        case kCsUnauthorized:
+            return "unauthorized";
+        case kCsAuthorizing:
+            return "authorizing";
+        case kCsConnecting:
+            return "connecting";
+        default:
+            return "unknown";
+    }
+}
+
+apacket* get_apacket(void) {
     apacket* p = new apacket();
     if (p == nullptr) {
         LOG(FATAL) << "failed to allocate an apacket";
@@ -1326,7 +1356,7 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
                 s->transport ? s->transport
                              : acquire_one_transport(type, serial, transport_id, nullptr, &error);
         if (t) {
-            SendOkay(reply_fd, t->connection_state_name());
+            SendOkay(reply_fd, to_string(t->GetConnectionState()));
         } else {
             SendFail(reply_fd, error);
         }
@@ -1353,8 +1383,8 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
                                                              &response, true);
         if (t != nullptr) {
             kick_transport(t, true);
-            response =
-                    "reconnecting " + t->serial_name() + " [" + t->connection_state_name() + "]\n";
+            response = "reconnecting " + t->serial_name() + " [" +
+                       to_string(t->GetConnectionState()) + "]\n";
         }
         SendOkay(reply_fd, response);
         return HostRequestResult::Handled;

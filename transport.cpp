@@ -44,7 +44,6 @@
 #include <android-base/stringprintf.h>
 #include <android-base/strings.h>
 #include <android-base/thread_annotations.h>
-
 #include <diagnose_usb.h>
 
 #include "adb.h"
@@ -1203,38 +1202,6 @@ void atransport::HandleError(const std::string& error) {
     });
 }
 
-std::string atransport::connection_state_name() const {
-    ConnectionState state = GetConnectionState();
-    switch (state) {
-        case kCsOffline:
-            return "offline";
-        case kCsBootloader:
-            return "bootloader";
-        case kCsDevice:
-            return "device";
-        case kCsHost:
-            return "host";
-        case kCsRecovery:
-            return "recovery";
-        case kCsRescue:
-            return "rescue";
-        case kCsNoPerm:
-            return UsbNoPermissionsShortHelpText();
-        case kCsSideload:
-            return "sideload";
-        case kCsUnauthorized:
-            return "unauthorized";
-        case kCsAuthorizing:
-            return "authorizing";
-        case kCsConnecting:
-            return "connecting";
-        case kCsDetached:
-            return "detached";
-        default:
-            return "unknown";
-    }
-}
-
 void atransport::update_version(int version, size_t payload) {
     protocol_version = std::min(version, A_VERSION);
     max_payload = std::min(payload, MAX_PAYLOAD);
@@ -1399,10 +1366,10 @@ static void append_transport(const atransport* t, std::string* result, bool long
     if (!long_listing) {
         *result += serial;
         *result += '\t';
-        *result += t->connection_state_name();
+        *result += to_string(t->GetConnectionState());
     } else {
         android::base::StringAppendF(result, "%-22s %s", serial.c_str(),
-                                     t->connection_state_name().c_str());
+                                     to_string(t->GetConnectionState()).c_str());
 
         append_transport_info(result, "", t->devpath, false);
         append_transport_info(result, "product:", t->product, false);
