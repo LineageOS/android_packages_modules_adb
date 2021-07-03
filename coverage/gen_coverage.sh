@@ -55,8 +55,6 @@ for TEST in $ADB_TESTS; do
   adb pull /data/local/tmp/adb_coverage/$TEST.profraw "$TRACEDIR"/test_traces/
 done
 
-adb pull /data/local/tmp/adb_coverage "$TRACEDIR"/test_traces
-
 # Clear logcat and increase the buffer to something ridiculous so we can fetch the pids of adbd later.
 adb shell logcat -c -G128M
 
@@ -118,4 +116,5 @@ done
 unset IFS
 
 ### Merge the traces.
+echo "Traces fetched to $TRACEDIR"
 llvm-profdata merge --output="$OUTPUT_DIR"/adbd.profdata "$TRACEDIR"/adbd_traces/* "$TRACEDIR"/test_traces/*
