@@ -1573,6 +1573,13 @@ class SocketTest(DeviceTest):
         thread.join()
 
 
+class FramebufferTest(DeviceTest):
+    def test_framebuffer(self):
+        """Test that we get something from the framebuffer service."""
+        output = subprocess.check_output(self.device.adb_cmd + ["raw", "framebuffer:"])
+        self.assertFalse(len(output) == 0)
+
+
 if sys.platform == "win32":
     # From https://stackoverflow.com/a/38749458
     import os
