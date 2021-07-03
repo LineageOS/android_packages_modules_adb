@@ -335,7 +335,6 @@ class atransport : public enable_weak_from_this<atransport> {
     size_t failed_auth_attempts = 0;
 
     std::string serial_name() const { return !serial.empty() ? serial : "<unknown>"; }
-    std::string connection_state_name() const;
 
     void update_version(int version, size_t payload);
     int get_protocol_version() const;

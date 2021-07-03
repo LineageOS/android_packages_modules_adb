@@ -115,6 +115,8 @@ enum ConnectionState {
     kCsRescue,
 };
 
+std::string to_string(ConnectionState state);
+
 inline bool ConnectionStateIsOnline(ConnectionState state) {
     switch (state) {
         case kCsBootloader:
@@ -200,8 +202,6 @@ void put_apacket(apacket* p);
 void local_init(const std::string& addr);
 bool local_connect(int port);
 int local_connect_arbitrary_ports(int console_port, int adb_port, std::string* error);
-
-ConnectionState connection_state(atransport* t);
 
 extern const char* adb_device_banner;
 
