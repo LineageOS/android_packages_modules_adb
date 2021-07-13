@@ -16,29 +16,13 @@
 
 #include "framebuffer_service.h"
 
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/fb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
-#include "sysdeps.h"
-
 #include "adb.h"
 #include "adb_io.h"
 #include "adb_utils.h"
+#include "sysdeps.h"
 
-/* TODO:
-** - sync with vsync to avoid tearing
-*/
-/* This version number defines the format of the fbinfo struct.
-   It must match versioning in ddms where this data is consumed. */
+// This version number defines the format of the fbinfo struct.
+// It must match versioning in ddms where this data is consumed.
 #define DDMS_RAWIMAGE_VERSION 2
 struct fbinfo {
     unsigned int version;
@@ -57,44 +41,21 @@ struct fbinfo {
     unsigned int alpha_length;
 } __attribute__((packed));
 
-void framebuffer_service(unique_fd fd) {
-    struct fbinfo fbinfo;
-    unsigned int i, bsize;
-    char buf[640];
-    int fd_screencap;
-    int w, h, f, c;
-    int fds[2];
-    pid_t pid;
-
-    if (pipe2(fds, O_CLOEXEC) < 0) return;
-
-    pid = fork();
-    if (pid < 0) goto done;
-
-    if (pid == 0) {
-        dup2(fds[1], STDOUT_FILENO);
-        adb_close(fds[0]);
-        adb_close(fds[1]);
-        const char* command = "screencap";
-        const char *args[2] = {command, nullptr};
-        execvp(command, (char**)args);
-        perror_exit("exec screencap failed");
+static void reformat_screencap(int in_fd, int out_fd) {
+    // Read the screencap header.
+    int w, h, format, colorSpace;
+    if (!ReadFdExactly(in_fd, &w, 4) || !ReadFdExactly(in_fd, &h, 4) ||
+        !ReadFdExactly(in_fd, &format, 4) || !ReadFdExactly(in_fd, &colorSpace, 4)) {
+        PLOG(ERROR) << "couldn't read screencap header";
+        return;
     }
 
-    adb_close(fds[1]);
-    fd_screencap = fds[0];
-
-    /* read w, h, format & color space */
-    if(!ReadFdExactly(fd_screencap, &w, 4)) goto done;
-    if(!ReadFdExactly(fd_screencap, &h, 4)) goto done;
-    if(!ReadFdExactly(fd_screencap, &f, 4)) goto done;
-    if(!ReadFdExactly(fd_screencap, &c, 4)) goto done;
-
+    // Translate that into the adb framebuffer header.
+    struct fbinfo fbinfo = {};
     fbinfo.version = DDMS_RAWIMAGE_VERSION;
-    fbinfo.colorSpace = c;
-    /* see hardware/hardware.h */
-    switch (f) {
-        case 1: /* RGBA_8888 */
+    fbinfo.colorSpace = colorSpace;
+    switch (format) {
+        case 1:  // RGBA_8888
             fbinfo.bpp = 32;
             fbinfo.size = w * h * 4;
             fbinfo.width = w;
@@ -108,7 +69,7 @@ void framebuffer_service(unique_fd fd) {
             fbinfo.alpha_offset = 24;
             fbinfo.alpha_length = 8;
             break;
-        case 2: /* RGBX_8888 */
+        case 2:  // RGBX_8888
             fbinfo.bpp = 32;
             fbinfo.size = w * h * 4;
             fbinfo.width = w;
@@ -122,7 +83,7 @@ void framebuffer_service(unique_fd fd) {
             fbinfo.alpha_offset = 24;
             fbinfo.alpha_length = 0;
             break;
-        case 3: /* RGB_888 */
+        case 3:  // RGB_888
             fbinfo.bpp = 24;
             fbinfo.size = w * h * 3;
             fbinfo.width = w;
@@ -136,7 +97,7 @@ void framebuffer_service(unique_fd fd) {
             fbinfo.alpha_offset = 24;
             fbinfo.alpha_length = 0;
             break;
-        case 4: /* RGB_565 */
+        case 4:  // RGB_565
             fbinfo.bpp = 16;
             fbinfo.size = w * h * 2;
             fbinfo.width = w;
@@ -150,7 +111,7 @@ void framebuffer_service(unique_fd fd) {
             fbinfo.alpha_offset = 0;
             fbinfo.alpha_length = 0;
             break;
-        case 5: /* BGRA_8888 */
+        case 5:  // BGRA_8888
             fbinfo.bpp = 32;
             fbinfo.size = w * h * 4;
             fbinfo.width = w;
@@ -163,25 +124,61 @@ void framebuffer_service(unique_fd fd) {
             fbinfo.blue_length = 8;
             fbinfo.alpha_offset = 24;
             fbinfo.alpha_length = 8;
-           break;
+            break;
         default:
-            goto done;
+            LOG(ERROR) << "bad screencap format: " << format;
+            return;
     }
 
-    /* write header */
-    if (!WriteFdExactly(fd.get(), &fbinfo, sizeof(fbinfo))) goto done;
-
-    /* write data */
-    for(i = 0; i < fbinfo.size; i += bsize) {
-      bsize = sizeof(buf);
-      if (i + bsize > fbinfo.size)
-        bsize = fbinfo.size - i;
-      if(!ReadFdExactly(fd_screencap, buf, bsize)) goto done;
-      if (!WriteFdExactly(fd.get(), buf, bsize)) goto done;
+    // Write the modified header.
+    if (!WriteFdExactly(out_fd, &fbinfo, sizeof(fbinfo))) {
+        PLOG(ERROR) << "framebuffer service couldn't write header";
+        return;
     }
 
-done:
+    // Copy the raw pixel data.
+    char buf[BUFSIZ];
+    size_t left = fbinfo.size;
+    while (left > 0) {
+        size_t chunk_size = std::min(sizeof(buf), left);
+        int bytes = adb_read(in_fd, buf, chunk_size);
+        if (bytes == -1) {
+            PLOG(ERROR) << "framebuffer service read failed";
+            return;
+        }
+        left -= bytes;
+        if (!WriteFdExactly(out_fd, buf, bytes)) {
+            PLOG(ERROR) << "framebuffer service write failed";
+            return;
+        }
+    }
+}
+
+void framebuffer_service(unique_fd out_fd) {
+    int fds[2];
+    if (pipe2(fds, O_CLOEXEC) == -1) {
+        PLOG(ERROR) << "framebuffer service pipe() failed";
+        return;
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        PLOG(ERROR) << "framebuffer service fork() failed";
+        return;
+    }
+
+    if (pid == 0) {
+        dup2(fds[1], STDOUT_FILENO);
+        adb_close(fds[0]);
+        adb_close(fds[1]);
+        const char* args[] = {"screencap", nullptr};
+        execvp(args[0], (char**)args);
+        perror_exit("exec() screencap failed");
+    }
+
+    reformat_screencap(fds[0], out_fd.get());
     adb_close(fds[0]);
+    adb_close(fds[1]);
 
     TEMP_FAILURE_RETRY(waitpid(pid, nullptr, 0));
 }
