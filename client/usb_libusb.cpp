@@ -21,6 +21,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#if defined(__linux__)
+#include <sys/inotify.h>
+#include <unistd.h>
+#endif
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -43,6 +48,8 @@
 #include "fdevent/fdevent.h"
 #include "transfer_id.h"
 #include "transport.h"
+
+using namespace std::chrono_literals;
 
 using android::base::ScopedLockAssertion;
 using android::base::StringPrintf;
@@ -777,10 +784,60 @@ static void device_connected(libusb_device* device) {
     // Android's host linux libusb uses netlink instead of udev for device hotplug notification,
     // which means we can get hotplug notifications before udev has updated ownership/perms on the
     // device. Since we're not going to be able to link against the system's libudev any time soon,
-    // hack around this by inserting a sleep.
+    // poll for accessibility changes with inotify until a timeout expires.
     libusb_ref_device(device);
     auto thread = std::thread([device]() {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::string bus_path = StringPrintf("/dev/bus/usb/%03d/", libusb_get_bus_number(device));
+        std::string device_path =
+                StringPrintf("%s/%03d", bus_path.c_str(), libusb_get_device_address(device));
+        auto deadline = std::chrono::steady_clock::now() + 1s;
+        unique_fd infd(inotify_init1(IN_CLOEXEC | IN_NONBLOCK));
+        if (infd == -1) {
+            PLOG(FATAL) << "failed to create inotify fd";
+        }
+
+        // Register the watch first, and then check for accessibility, to avoid a race.
+        // We can't watch the device file itself, as that requires us to be able to access it.
+        if (inotify_add_watch(infd.get(), bus_path.c_str(), IN_ATTRIB) == -1) {
+            PLOG(ERROR) << "failed to register inotify watch on '" << bus_path
+                        << "', falling back to sleep";
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        } else {
+            adb_pollfd pfd = {.fd = infd.get(), .events = POLLIN, .revents = 0};
+
+            while (access(device_path.c_str(), R_OK | W_OK) == -1) {
+                auto timeout = deadline - std::chrono::steady_clock::now();
+                if (timeout < 0s) {
+                    break;
+                }
+
+                uint64_t ms = timeout / 1ms;
+                int rc = adb_poll(&pfd, 1, ms);
+                if (rc == -1) {
+                    if (errno == EINTR) {
+                        continue;
+                    } else {
+                        LOG(WARNING) << "timeout expired while waiting for device accessibility";
+                        break;
+                    }
+                }
+
+                union {
+                    struct inotify_event ev;
+                    char bytes[sizeof(struct inotify_event) + NAME_MAX + 1];
+                } buf;
+
+                rc = adb_read(infd.get(), &buf, sizeof(buf));
+                if (rc == -1) {
+                    break;
+                }
+
+                // We don't actually care about the data: we might get spurious events for
+                // other devices on the bus, but we'll double check in the loop condition.
+                continue;
+            }
+        }
+
         process_device(device);
         if (--connecting_devices == 0) {
             adb_notify_device_scan_complete();
