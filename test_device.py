@@ -1574,6 +1574,7 @@ class SocketTest(DeviceTest):
 
 
 class FramebufferTest(DeviceTest):
+    @requires_root
     def test_framebuffer(self):
         """Test that we get something from the framebuffer service."""
         output = subprocess.check_output(self.device.adb_cmd + ["raw", "framebuffer:"])
