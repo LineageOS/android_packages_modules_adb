@@ -19,6 +19,9 @@
     },
     {
       "name": "adb_tls_connection_test"
+    },
+    {
+      "name": "MicrodroidHostTestCases"
     }
   ],
   "imports": [
