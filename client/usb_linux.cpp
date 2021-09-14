@@ -148,7 +148,6 @@ static void find_usb_device(const std::string& base,
             struct usb_endpoint_descriptor *ep1, *ep2;
             unsigned zero_mask = 0;
             size_t max_packet_size = 0;
-            unsigned vid, pid;
 
             if (contains_non_digit(de->d_name)) continue;
 
@@ -180,11 +179,10 @@ static void find_usb_device(const std::string& base,
                 continue;
             }
 
-            vid = device->idVendor;
-            pid = device->idProduct;
-            DBGX("[ %s is V:%04x P:%04x ]\n", dev_name.c_str(), vid, pid);
+            DBGX("[ %s is V:%04x P:%04x ]\n", dev_name.c_str(), device->idVendor,
+                 device->idProduct);
 
-                // should have config descriptor next
+            // should have config descriptor next
             config = (struct usb_config_descriptor *)bufptr;
             bufptr += USB_DT_CONFIG_SIZE;
             if (config->bLength != USB_DT_CONFIG_SIZE || config->bDescriptorType != USB_DT_CONFIG) {
