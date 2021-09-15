@@ -1276,14 +1276,12 @@ static bool local_build_list(SyncConnection& sc, std::vector<copyinfo>* file_lis
         return false;
     }
 
-    bool empty_dir = true;
     dirent* de;
     while ((de = readdir(dir.get()))) {
         if (IsDotOrDotDot(de->d_name)) {
             continue;
         }
 
-        empty_dir = false;
         std::string stat_path = lpath + de->d_name;
 
         struct stat st;

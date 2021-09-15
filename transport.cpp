@@ -208,7 +208,6 @@ void ReconnectHandler::Run() {
 
             // Scan the whole list for kicked transports, so that we immediately handle an explicit
             // disconnect request.
-            bool kicked = false;
             for (auto it = reconnect_queue_.begin(); it != reconnect_queue_.end();) {
                 if (it->transport->kicked()) {
                     D("transport %s was kicked. giving up on it.", it->transport->serial.c_str());
@@ -217,7 +216,6 @@ void ReconnectHandler::Run() {
                 } else {
                     ++it;
                 }
-                kicked = true;
             }
 
             if (reconnect_queue_.empty()) continue;
