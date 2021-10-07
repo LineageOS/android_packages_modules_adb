@@ -18,10 +18,8 @@ cc_library {
     export_include_dirs: ["include"],
 
     stl: "libc++_static",
-    shared_libs: [
-      "libbase",
-      "liblog",
-    ],
+    shared_libs: ["liblog"],
+    static_libs: ["libbase"],
 
     defaults: ["adbd_defaults", "host_adbd_supported"],
 
@@ -44,10 +42,8 @@ cc_library {
     export_include_dirs: ["include"],
 
     stl: "libc++_static",
-    shared_libs: [
-      "libbase",
-      "liblog",
-    ],
+    shared_libs: ["liblog"],
+    static_libs: ["libbase"],
 
     defaults: ["adbd_defaults"],
     visibility: [
