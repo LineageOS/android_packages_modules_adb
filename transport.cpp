@@ -1539,7 +1539,9 @@ void kick_all_tcp_devices() {
     }
     reconnect_handler.CheckForKicked();
 }
+#endif
 
+#if ADB_HOST || LEGACY_FFS
 void register_usb_transport(std::shared_ptr<Connection> connection, const char* serial,
                             const char* devpath, unsigned writeable) {
     atransport* t = new atransport(writeable ? kCsOffline : kCsNoPerm);

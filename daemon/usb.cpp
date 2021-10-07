@@ -57,6 +57,9 @@
 
 using android::base::StringPrintf;
 
+// We can't find out whether we have support for AIO on ffs endpoints until we submit a read.
+static std::optional<bool> gFfsAioSupported;
+
 // Not all USB controllers support operations larger than 16k, so don't go above that.
 // Also, each submitted operation does an allocation in the kernel of that size, so we want to
 // minimize our queue depth while still maintaining a deep enough queue to keep the USB stack fed.
@@ -602,10 +605,16 @@ struct UsbFfsConnection : public Connection {
         block->pending = true;
         struct iocb* iocb = &block->control;
         if (io_submit(aio_context_.get(), 1, &iocb) != 1) {
+            if (errno == EINVAL && !gFfsAioSupported.has_value()) {
+                HandleError("failed to submit first read, AIO on FFS not supported");
+                gFfsAioSupported = false;
+                return false;
+            }
             HandleError(StringPrintf("failed to submit read: %s", strerror(errno)));
             return false;
         }
 
+        gFfsAioSupported = true;
         return true;
     }
 
@@ -726,6 +735,8 @@ struct UsbFfsConnection : public Connection {
     static constexpr int kInterruptionSignal = SIGUSR1;
 };
 
+void usb_init_legacy();
+
 static void usb_ffs_open_thread() {
     adb_thread_setname("usb ffs open");
 
@@ -744,6 +755,11 @@ static void usb_ffs_open_thread() {
     });
 
     while (true) {
+        if (gFfsAioSupported.has_value() && !gFfsAioSupported.value()) {
+            LOG(INFO) << "failed to use nonblocking ffs, falling back to legacy";
+            return usb_init_legacy();
+        }
+
         unique_fd control;
         unique_fd bulk_out;
         unique_fd bulk_in;
@@ -771,5 +787,13 @@ static void usb_ffs_open_thread() {
 }
 
 void usb_init() {
-    std::thread(usb_ffs_open_thread).detach();
+    bool use_nonblocking = android::base::GetBoolProperty(
+            "persist.adb.nonblocking_ffs",
+            android::base::GetBoolProperty("ro.adb.nonblocking_ffs", true));
+
+    if (use_nonblocking) {
+        std::thread(usb_ffs_open_thread).detach();
+    } else {
+        usb_init_legacy();
+    }
 }
