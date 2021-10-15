@@ -137,8 +137,10 @@ std::optional<discovery::Config> GetConfigForAllInterfaces() {
 
     discovery::Config config;
     for (const auto interface : interface_infos) {
-        config.network_info.push_back({interface});
-        LOG(VERBOSE) << "Listening on interface [" << interface << "]";
+        if (interface.GetIpAddressV4() || interface.GetIpAddressV6()) {
+            config.network_info.push_back({interface});
+            LOG(VERBOSE) << "Listening on interface [" << interface << "]";
+        }
     }
 
     if (config.network_info.empty()) {
