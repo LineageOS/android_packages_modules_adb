@@ -566,16 +566,27 @@ struct LibusbConnection : public Connection {
             std::unique_lock<std::mutex> lock(write_mutex_);
             ScopedLockAssertion assumed_locked(write_mutex_);
 
-            if (!writes_.empty()) {
-                for (auto& [id, write] : writes_) {
-                    libusb_cancel_transfer(write->transfer);
+            std::erase_if(writes_, [](const auto& write_item) {
+                auto const& [id, write_block] = write_item;
+                int rc = libusb_cancel_transfer(write_block->transfer);
+                if (rc != 0) {
+                    // libusb_cancel_transfer failed for some reason. We will
+                    // never get a callback for this transfer. So we need to
+                    // remove it from the list or we will hang below.
+                    LOG(INFO) << "libusb_cancel_transfer failed: " << libusb_error_name(rc);
+                    libusb_free_transfer(write_block->transfer);
+                    return true;
                 }
+                // Wait for the write_cb to fire before removing.
+                return false;
+            });
 
-                destruction_cv_.wait(lock, [this]() {
-                    ScopedLockAssertion assumed_locked(write_mutex_);
-                    return writes_.empty();
-                });
-            }
+            // Wait here until the write callbacks have all fired and removed
+            // the remaining writes_.
+            destruction_cv_.wait(lock, [this]() {
+                ScopedLockAssertion assumed_locked(write_mutex_);
+                return writes_.empty();
+            });
         }
 
         {
