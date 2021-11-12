@@ -726,7 +726,7 @@ static void ReportServerStartupFailure(pid_t pid) {
     while (static_cast<size_t>(i) < lines.size()) fprintf(stderr, "%s\n", lines[i++].c_str());
 }
 
-int launch_server(const std::string& socket_spec) {
+int launch_server(const std::string& socket_spec, const char* one_device) {
 #if defined(_WIN32)
     /* we need to start the server in the background                    */
     /* we create a PIPE that will be used to wait for the server's "OK" */
@@ -828,8 +828,14 @@ int launch_server(const std::string& socket_spec) {
     }
 
     WCHAR   args[64];
-    snwprintf(args, arraysize(args), L"adb -L %s fork-server server --reply-fd %d",
-              socket_spec.c_str(), ack_write_as_int);
+    if (one_device) {
+        snwprintf(args, arraysize(args),
+                  L"adb -L %s fork-server server --reply-fd %d --one-device %s",
+                  socket_spec.c_str(), ack_write_as_int, one_device);
+    } else {
+        snwprintf(args, arraysize(args), L"adb -L %s fork-server server --reply-fd %d",
+                  socket_spec.c_str(), ack_write_as_int);
+    }
 
     PROCESS_INFORMATION   pinfo;
     ZeroMemory(&pinfo, sizeof(pinfo));
@@ -978,8 +984,14 @@ int launch_server(const std::string& socket_spec) {
         char reply_fd[30];
         snprintf(reply_fd, sizeof(reply_fd), "%d", pipe_write.get());
         // child process
-        int result = execl(path.c_str(), "adb", "-L", socket_spec.c_str(), "fork-server", "server",
-                           "--reply-fd", reply_fd, NULL);
+        std::vector<const char*> child_argv = {
+                "adb", "-L", socket_spec.c_str(), "fork-server", "server", "--reply-fd", reply_fd};
+        if (one_device) {
+            child_argv.push_back("--one-device");
+            child_argv.push_back(one_device);
+        }
+        child_argv.push_back(nullptr);
+        int result = execv(path.c_str(), const_cast<char* const*>(child_argv.data()));
         // this should not return
         fprintf(stderr, "adb: execl returned %d: %s\n", result, strerror(errno));
     } else {
