@@ -549,6 +549,7 @@ cc_library_static {
         }
     },
 
+    min_sdk_version: "30",
     apex_available: [
         "//apex_available:platform",
         "com.android.adbd",
@@ -629,6 +630,7 @@ cc_library {
         },
     },
 
+    min_sdk_version: "30",
     apex_available: [
         "//apex_available:platform",
         "com.android.adbd",
@@ -643,6 +645,7 @@ cc_library {
     name: "libadbd",
     defaults: ["adbd_defaults", "host_adbd_supported"],
     recovery_available: true,
+    min_sdk_version: "30",
     apex_available: ["com.android.adbd"],
 
     // avoid getting duplicate symbol of android::build::getbuildnumber().
@@ -701,6 +704,7 @@ cc_binary {
     name: "adbd",
     defaults: ["adbd_defaults", "host_adbd_supported", "libadbd_binary_dependencies"],
     recovery_available: true,
+    min_sdk_version: "30",
     apex_available: ["com.android.adbd"],
 
     srcs: [
