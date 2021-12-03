@@ -422,6 +422,18 @@ class atransport : public enable_weak_from_this<atransport> {
     DISALLOW_COPY_AND_ASSIGN(atransport);
 };
 
+// --one-device command line parameter is eventually put here.
+void transport_set_one_device(const char* adb_one_device);
+
+// Returns one device owned by this server of nullptr if all devices belong to server.
+const char* transport_get_one_device();
+
+// Returns true if the adb server owns all devices, or `serial`.
+bool transport_server_owns_device(std::string_view serial);
+
+// Returns true if the adb server owns all devices, `serial`, or `dev_path`.
+bool transport_server_owns_device(std::string_view dev_path, std::string_view serial);
+
 /*
  * Obtain a transport from the available transports.
  * If serial is non-null then only the device with that serial will be chosen.
