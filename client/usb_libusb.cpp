@@ -469,6 +469,8 @@ struct LibusbConnection : public Connection {
         return true;
     }
 
+    std::string GetUsbDeviceAddress() const { return std::string("usb:") + device_address_; }
+
     std::string GetSerial() {
         std::string serial;
 
@@ -722,10 +724,14 @@ struct LibusbConnection : public Connection {
 
         auto device_desc = connection->GetDeviceDescriptor();
         if (!device_desc) {
+            LOG(INFO) << "ignoring device " << connection->GetUsbDeviceAddress()
+                      << ": not an adb interface. (GetDeviceDescriptor)";
             return {};
         }
 
         if (!connection->FindInterface(&device_desc.value())) {
+            LOG(INFO) << "ignoring device " << connection->GetUsbDeviceAddress()
+                      << ": not an adb interface. (FindInterface)";
             return {};
         }
 
@@ -743,11 +749,19 @@ struct LibusbConnection : public Connection {
 #else
         // We need to open the device to get its serial on Windows and OS X.
         if (!connection->OpenDevice(nullptr)) {
+            LOG(INFO) << "ignoring device " << connection->GetUsbDeviceAddress()
+                      << ": not an adb interface. (OpenDevice)";
             return {};
         }
         connection->serial_ = connection->GetSerial();
         connection->CloseDevice();
 #endif
+        if (!transport_server_owns_device(connection->GetUsbDeviceAddress(), connection->serial_)) {
+            LOG(INFO) << "ignoring device " << connection->GetUsbDeviceAddress() << " serial "
+                      << connection->serial_ << ": this server owns '" << transport_get_one_device()
+                      << "'";
+            return {};
+        }
 
         return connection;
     }
@@ -792,7 +806,6 @@ static void process_device(libusb_device* device_raw) {
     unique_device device(libusb_ref_device(device_raw));
     auto connection_opt = LibusbConnection::Create(std::move(device));
     if (!connection_opt) {
-        LOG(INFO) << "ignoring device: not an adb interface";
         return;
     }
 
