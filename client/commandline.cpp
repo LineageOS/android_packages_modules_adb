@@ -86,14 +86,18 @@ static void help() {
     // clang-format off
     fprintf(stdout,
         "global options:\n"
-        " -a         listen on all network interfaces, not just localhost\n"
-        " -d         use USB device (error if multiple devices connected)\n"
-        " -e         use TCP/IP device (error if multiple TCP/IP devices available)\n"
-        " -s SERIAL  use device with given serial (overrides $ANDROID_SERIAL)\n"
-        " -t ID      use device with given transport id\n"
-        " -H         name of adb server host [default=localhost]\n"
-        " -P         port of adb server [default=5037]\n"
-        " -L SOCKET  listen on given socket for adb server [default=tcp:localhost:5037]\n"
+        " -a                       listen on all network interfaces, not just localhost\n"
+        " -d                       use USB device (error if multiple devices connected)\n"
+        " -e                       use TCP/IP device (error if multiple TCP/IP devices available)\n"
+        " -s SERIAL                use device with given serial (overrides $ANDROID_SERIAL)\n"
+        " -t ID                    use device with given transport id\n"
+        " -H                       name of adb server host [default=localhost]\n"
+        " -P                       port of adb server [default=5037]\n"
+        " -L SOCKET                listen on given socket for adb server"
+        " [default=tcp:localhost:5037]\n"
+        " --one-device SERIAL|USB  only allowed with 'start-server' or 'server nodaemon', server"
+        " will only connect to one USB device, specified by a serial number or USB device"
+        " address.\n"
         "\n"
         "general commands:\n"
         " devices [-l]             list connected devices (-l for long output)\n"
@@ -1558,6 +1562,7 @@ int adb_commandline(int argc, const char** argv) {
     const char* server_host_str = nullptr;
     const char* server_port_str = nullptr;
     const char* server_socket_str = nullptr;
+    const char* one_device_str = nullptr;
 
     // We need to check for -d and -e before we look at $ANDROID_SERIAL.
     const char* serial = nullptr;
@@ -1574,21 +1579,26 @@ int adb_commandline(int argc, const char** argv) {
         } else if (!strcmp(argv[0], "--reply-fd")) {
             if (argc < 2) error_exit("--reply-fd requires an argument");
             const char* reply_fd_str = argv[1];
-            argc--;
-            argv++;
+            --argc;
+            ++argv;
             ack_reply_fd = strtol(reply_fd_str, nullptr, 10);
             if (!_is_valid_ack_reply_fd(ack_reply_fd)) {
                 fprintf(stderr, "adb: invalid reply fd \"%s\"\n", reply_fd_str);
                 return 1;
             }
+        } else if (!strcmp(argv[0], "--one-device")) {
+            if (argc < 2) error_exit("--one-device requires an argument");
+            one_device_str = argv[1];
+            --argc;
+            ++argv;
         } else if (!strncmp(argv[0], "-s", 2)) {
             if (isdigit(argv[0][2])) {
                 serial = argv[0] + 2;
             } else {
                 if (argc < 2 || argv[0][2] != '\0') error_exit("-s requires an argument");
                 serial = argv[1];
-                argc--;
-                argv++;
+                --argc;
+                ++argv;
             }
         } else if (!strncmp(argv[0], "-t", 2)) {
             const char* id;
@@ -1596,8 +1606,8 @@ int adb_commandline(int argc, const char** argv) {
                 id = argv[0] + 2;
             } else {
                 id = argv[1];
-                argc--;
-                argv++;
+                --argc;
+                ++argv;
             }
             transport_id = strtoll(id, const_cast<char**>(&id), 10);
             if (*id != '\0') {
@@ -1613,8 +1623,8 @@ int adb_commandline(int argc, const char** argv) {
             if (argv[0][2] == '\0') {
                 if (argc < 2) error_exit("-H requires an argument");
                 server_host_str = argv[1];
-                argc--;
-                argv++;
+                --argc;
+                ++argv;
             } else {
                 server_host_str = argv[0] + 2;
             }
@@ -1622,22 +1632,22 @@ int adb_commandline(int argc, const char** argv) {
             if (argv[0][2] == '\0') {
                 if (argc < 2) error_exit("-P requires an argument");
                 server_port_str = argv[1];
-                argc--;
-                argv++;
+                --argc;
+                ++argv;
             } else {
                 server_port_str = argv[0] + 2;
             }
         } else if (!strcmp(argv[0], "-L")) {
             if (argc < 2) error_exit("-L requires an argument");
             server_socket_str = argv[1];
-            argc--;
-            argv++;
+            --argc;
+            ++argv;
         } else {
             /* out of recognized modifiers and flags */
             break;
         }
-        argc--;
-        argv++;
+        --argc;
+        ++argv;
     }
 
     if ((server_host_str || server_port_str) && server_socket_str) {
@@ -1678,6 +1688,12 @@ int adb_commandline(int argc, const char** argv) {
         server_socket_str = temp;
     }
 
+    bool server_start = is_daemon || is_server || strcmp(argv[0], "start-server") == 0;
+    if (one_device_str && !server_start) {
+        error_exit("--one-device is only allowed when starting a server.");
+    }
+
+    adb_set_one_device(one_device_str);
     adb_set_socket_spec(server_socket_str);
 
     // If none of -d, -e, or -s were specified, try $ANDROID_SERIAL.
@@ -1693,9 +1709,9 @@ int adb_commandline(int argc, const char** argv) {
                 fprintf(stderr, "reply fd for adb server to client communication not specified.\n");
                 return 1;
             }
-            r = adb_server_main(is_daemon, server_socket_str, ack_reply_fd);
+            r = adb_server_main(is_daemon, server_socket_str, one_device_str, ack_reply_fd);
         } else {
-            r = launch_server(server_socket_str);
+            r = launch_server(server_socket_str, one_device_str);
         }
         if (r) {
             fprintf(stderr,"* could not start server *\n");
@@ -1723,8 +1739,8 @@ int adb_commandline(int argc, const char** argv) {
         }
 
         /* Fall through */
-        argc--;
-        argv++;
+        --argc;
+        ++argv;
     }
 
     /* adb_connect() commands */
