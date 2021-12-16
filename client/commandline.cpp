@@ -1688,7 +1688,8 @@ int adb_commandline(int argc, const char** argv) {
         server_socket_str = temp;
     }
 
-    bool server_start = is_daemon || is_server || strcmp(argv[0], "start-server") == 0;
+    bool server_start =
+            is_daemon || is_server || (argc > 0 && strcmp(argv[0], "start-server") == 0);
     if (one_device_str && !server_start) {
         error_exit("--one-device is only allowed when starting a server.");
     }
