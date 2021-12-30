@@ -90,6 +90,7 @@ const char* const kFeatureSendRecv2Brotli = "sendrecv_v2_brotli";
 const char* const kFeatureSendRecv2LZ4 = "sendrecv_v2_lz4";
 const char* const kFeatureSendRecv2Zstd = "sendrecv_v2_zstd";
 const char* const kFeatureSendRecv2DryRunSend = "sendrecv_v2_dry_run_send";
+const char* const kFeatureDelayedAck = "delayed_ack";
 // TODO(joshuaduong): Bump to v2 when openscreen discovery is enabled by default
 const char* const kFeatureOpenscreenMdns = "openscreen_mdns";
 
@@ -1246,31 +1247,51 @@ size_t atransport::get_max_payload() const {
     return max_payload;
 }
 
+#if ADB_HOST
+static bool delayed_ack_enabled() {
+    static const char* env = getenv("ADB_DELAYED_ACK");
+    static bool result = env && strcmp(env, "1") == 0;
+    return result;
+}
+#endif
+
 const FeatureSet& supported_features() {
-    static const android::base::NoDestructor<FeatureSet> features([] {
-        return FeatureSet{
-                kFeatureShell2,
-                kFeatureCmd,
-                kFeatureStat2,
-                kFeatureLs2,
-                kFeatureFixedPushMkdir,
-                kFeatureApex,
-                kFeatureAbb,
-                kFeatureFixedPushSymlinkTimestamp,
-                kFeatureAbbExec,
-                kFeatureRemountShell,
-                kFeatureTrackApp,
-                kFeatureSendRecv2,
-                kFeatureSendRecv2Brotli,
-                kFeatureSendRecv2LZ4,
-                kFeatureSendRecv2Zstd,
-                kFeatureSendRecv2DryRunSend,
-                kFeatureOpenscreenMdns,
-                // Increment ADB_SERVER_VERSION when adding a feature that adbd needs
-                // to know about. Otherwise, the client can be stuck running an old
-                // version of the server even after upgrading their copy of adb.
-                // (http://b/24370690)
+    static const android::base::NoDestructor<FeatureSet> features([]() {
+        // Increment ADB_SERVER_VERSION when adding a feature that adbd needs
+        // to know about. Otherwise, the client can be stuck running an old
+        // version of the server even after upgrading their copy of adb.
+        // (http://b/24370690)
+
+        // clang-format off
+        FeatureSet result {
+            kFeatureShell2,
+            kFeatureCmd,
+            kFeatureStat2,
+            kFeatureLs2,
+            kFeatureFixedPushMkdir,
+            kFeatureApex,
+            kFeatureAbb,
+            kFeatureFixedPushSymlinkTimestamp,
+            kFeatureAbbExec,
+            kFeatureRemountShell,
+            kFeatureTrackApp,
+            kFeatureSendRecv2,
+            kFeatureSendRecv2Brotli,
+            kFeatureSendRecv2LZ4,
+            kFeatureSendRecv2Zstd,
+            kFeatureSendRecv2DryRunSend,
+            kFeatureOpenscreenMdns,
         };
+        // clang-format on
+
+#if ADB_HOST
+        if (delayed_ack_enabled()) {
+            result.push_back(kFeatureDelayedAck);
+        }
+#else
+        result.push_back(kFeatureDelayedAck);
+#endif
+        return result;
     }());
 
     return *features;
@@ -1303,6 +1324,7 @@ bool atransport::has_feature(const std::string& feature) const {
 
 void atransport::SetFeatures(const std::string& features_string) {
     features_ = StringToFeatureSet(features_string);
+    delayed_ack_ = CanUseFeature(features_, kFeatureDelayedAck);
 }
 
 void atransport::AddDisconnect(adisconnect* disconnect) {

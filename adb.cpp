@@ -233,13 +233,18 @@ void print_packet(const char *label, apacket *p)
 }
 #endif
 
-static void send_ready(unsigned local, unsigned remote, atransport *t)
-{
+void send_ready(unsigned local, unsigned remote, atransport* t, uint32_t ack_bytes) {
     D("Calling send_ready");
     apacket *p = get_apacket();
     p->msg.command = A_OKAY;
     p->msg.arg0 = local;
     p->msg.arg1 = remote;
+    if (t->SupportsDelayedAck()) {
+        p->msg.data_length = sizeof(ack_bytes);
+        p->payload.resize(sizeof(ack_bytes));
+        memcpy(p->payload.data(), &ack_bytes, sizeof(ack_bytes));
+    }
+
     send_packet(p, t);
 }
 
@@ -461,39 +466,79 @@ void handle_packet(apacket *p, atransport *t)
         }
         break;
 
-    case A_OPEN: /* OPEN(local-id, 0, "destination") */
-        if (t->online && p->msg.arg0 != 0 && p->msg.arg1 == 0) {
-            std::string_view address(p->payload.begin(), p->payload.size());
-
-            // Historically, we received service names as a char*, and stopped at the first NUL
-            // byte. The client sent strings with null termination, which post-string_view, start
-            // being interpreted as part of the string, unless we explicitly strip them.
-            address = StripTrailingNulls(address);
-
-            asocket* s = create_local_service_socket(address, t);
-            if (s == nullptr) {
-                send_close(0, p->msg.arg0, t);
-            } else {
-                s->peer = create_remote_socket(p->msg.arg0, t);
-                s->peer->peer = s;
-                send_ready(s->id, s->peer->id, t);
-                s->ready(s);
-            }
+    case A_OPEN: {
+        /* OPEN(local-id, [send-buffer], "destination") */
+        if (!t->online || p->msg.arg0 == 0) {
+            break;
         }
+
+        uint32_t send_bytes = static_cast<uint32_t>(p->msg.arg1);
+        if (t->SupportsDelayedAck() != static_cast<bool>(send_bytes)) {
+            LOG(ERROR) << "unexpected value of A_OPEN arg1: " << send_bytes
+                       << " (delayed acks = " << t->SupportsDelayedAck() << ")";
+            send_close(0, p->msg.arg0, t);
+            break;
+        }
+
+        std::string_view address(p->payload.begin(), p->payload.size());
+
+        // Historically, we received service names as a char*, and stopped at the first NUL
+        // byte. The client sent strings with null termination, which post-string_view, start
+        // being interpreted as part of the string, unless we explicitly strip them.
+        address = StripTrailingNulls(address);
+
+        asocket* s = create_local_service_socket(address, t);
+        if (s == nullptr) {
+            send_close(0, p->msg.arg0, t);
+            break;
+        }
+
+        s->peer = create_remote_socket(p->msg.arg0, t);
+        s->peer->peer = s;
+
+        if (t->SupportsDelayedAck()) {
+            LOG(DEBUG) << "delayed ack available: send buffer = " << send_bytes;
+            s->available_send_bytes = send_bytes;
+
+            // TODO: Make this adjustable at connection time?
+            send_ready(s->id, s->peer->id, t, INITIAL_DELAYED_ACK_BYTES);
+        } else {
+            LOG(DEBUG) << "delayed ack unavailable";
+            send_ready(s->id, s->peer->id, t, 0);
+        }
+
+        s->ready(s);
         break;
+    }
 
     case A_OKAY: /* READY(local-id, remote-id, "") */
         if (t->online && p->msg.arg0 != 0 && p->msg.arg1 != 0) {
             asocket* s = find_local_socket(p->msg.arg1, 0);
             if (s) {
-                if(s->peer == nullptr) {
+                std::optional<int32_t> acked_bytes;
+                if (p->payload.size() == sizeof(int32_t)) {
+                    int32_t value;
+                    memcpy(&value, p->payload.data(), sizeof(value));
+                    // acked_bytes can be negative!
+                    //
+                    // In the future, we can use this to preemptively supply backpressure, instead
+                    // of waiting for the writer to hit its limit.
+                    acked_bytes = value;
+                } else if (p->payload.size() != 0) {
+                    LOG(ERROR) << "invalid A_OKAY payload size: " << p->payload.size();
+                    return;
+                }
+
+                if (s->peer == nullptr) {
                     /* On first READY message, create the connection. */
                     s->peer = create_remote_socket(p->msg.arg0, t);
                     s->peer->peer = s;
+
+                    local_socket_ack(s, acked_bytes);
                     s->ready(s);
                 } else if (s->peer->id == p->msg.arg0) {
                     /* Other READY messages must use the same local-id */
-                    s->ready(s);
+                    local_socket_ack(s, acked_bytes);
                 } else {
                     D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s", p->msg.arg0,
                       p->msg.arg1, s->peer->id, p->msg.arg1, t->serial.c_str());
@@ -535,11 +580,7 @@ void handle_packet(apacket *p, atransport *t)
         if (t->online && p->msg.arg0 != 0 && p->msg.arg1 != 0) {
             asocket* s = find_local_socket(p->msg.arg1, p->msg.arg0);
             if (s) {
-                unsigned rid = p->msg.arg0;
-                if (s->enqueue(s, std::move(p->payload)) == 0) {
-                    D("Enqueue the socket");
-                    send_ready(s->id, rid, t);
-                }
+                s->enqueue(s, std::move(p->payload));
             }
         }
         break;

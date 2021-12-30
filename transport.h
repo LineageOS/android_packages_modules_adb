@@ -98,6 +98,8 @@ extern const char* const kFeatureSendRecv2LZ4;
 extern const char* const kFeatureSendRecv2Zstd;
 // adbd supports dry-run send for send/recv v2.
 extern const char* const kFeatureSendRecv2DryRunSend;
+// adbd supports delayed acks.
+extern const char* const kFeatureDelayedAck;
 
 TransportId NextTransportId();
 
@@ -344,6 +346,10 @@ class atransport : public enable_weak_from_this<atransport> {
 
     bool has_feature(const std::string& feature) const;
 
+    bool SupportsDelayedAck() const {
+        return delayed_ack_;
+    }
+
     // Loads the transport's feature set from the given string.
     void SetFeatures(const std::string& features_string);
 
@@ -418,6 +424,8 @@ class atransport : public enable_weak_from_this<atransport> {
     ReconnectCallback reconnect_;
 
     std::mutex mutex_;
+
+    bool delayed_ack_ = false;
 
     DISALLOW_COPY_AND_ASSIGN(atransport);
 };
