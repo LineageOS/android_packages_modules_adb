@@ -803,6 +803,7 @@ cc_binary {
     static_libs: [
         "adbroot_aidl_interface-ndk_platform",
     ],
+    system_ext_specific: true,
 }
 
 cc_binary {

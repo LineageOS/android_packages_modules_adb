@@ -1,4 +1,4 @@
-service adb_root /system/bin/adb_root
+service adb_root /system_ext/bin/adb_root
     class main
     user root
     group root
