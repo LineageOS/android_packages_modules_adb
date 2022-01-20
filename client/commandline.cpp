@@ -117,7 +117,6 @@ static void help() {
         "       localabstract:<unix domain socket name>\n"
         "       localreserved:<unix domain socket name>\n"
         "       localfilesystem:<unix domain socket name>\n"
-        "       dev:<character device name>\n"
         "       jdwp:<process pid> (remote only)\n"
         "       vsock:<CID>:<port> (remote only)\n"
         "       acceptfd:<fd> (listen only)\n"
@@ -1009,13 +1008,6 @@ static int adb_wipe_devices() {
     return 1;
 }
 
-/**
- * Run ppp in "notty" mode against a resource listed as the first parameter
- * eg:
- *
- * ppp dev:/dev/omap_csmi_tty0 <ppp options>
- *
- */
 static int ppp(int argc, const char** argv) {
 #if defined(_WIN32)
     error_exit("adb %s not implemented on Win32", argv[0]);
