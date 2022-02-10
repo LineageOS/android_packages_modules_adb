@@ -568,7 +568,7 @@ static int install_multiple_app_streamed(int argc, const char** argv) {
     std::vector<std::string> cmd_args = {install_cmd, "install-create", "-S",
                                          std::to_string(total_size)};
     cmd_args.reserve(first_apk + 4);
-    for (int i = 1; i < first_apk; i++) {
+    for (int i = 0; i < first_apk; i++) {
         if (use_abb_exec) {
             cmd_args.push_back(argv[i]);
         } else {
