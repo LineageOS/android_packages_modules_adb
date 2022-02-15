@@ -36,7 +36,6 @@ soong_config_module_type_import {
     module_types: ["library_linking_strategy_apex_defaults"],
 }
 
-// TODO(b/178585590): delete after testing linking strategy
 library_linking_strategy_apex_defaults {
     name: "adbd_manifest_defaults",
     soong_config_variables: {
