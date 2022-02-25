@@ -140,18 +140,18 @@ static void help() {
         "     copy local files/directories to device\n"
         "     --sync: only push files that are newer on the host than the device\n"
         "     -n: dry run: push files to device without storing to the filesystem\n"
-        "     -z: enable compression with a specified algorithm (any, none, brotli)\n"
+        "     -z: enable compression with a specified algorithm (any/none/brotli/lz4/zstd)\n"
         "     -Z: disable compression\n"
         " pull [-a] [-z ALGORITHM] [-Z] REMOTE... LOCAL\n"
         "     copy files/dirs from device\n"
         "     -a: preserve file timestamp and mode\n"
-        "     -z: enable compression with a specified algorithm (any, none, brotli)\n"
+        "     -z: enable compression with a specified algorithm (any/none/brotli/lz4/zstd)\n"
         "     -Z: disable compression\n"
         " sync [-l] [-z ALGORITHM] [-Z] [all|data|odm|oem|product|system|system_ext|vendor]\n"
         "     sync a local build from $ANDROID_PRODUCT_OUT to the device (default all)\n"
         "     -n: dry run: push files to device without storing to the filesystem\n"
         "     -l: list files that would be copied, but don't copy them\n"
-        "     -z: enable compression with a specified algorithm (any, none, brotli)\n"
+        "     -z: enable compression with a specified algorithm (any/none/brotli/lz4/zstd)\n"
         "     -Z: disable compression\n"
         "\n"
         "shell:\n"
@@ -1470,20 +1470,12 @@ const std::optional<FeatureSet>& adb_get_feature_set_or_die(void) {
 }
 
 // Helper function to handle processing of shell service commands:
-// remount, disable/enable-verity
-static int process_service(const int argc, const char** argv) {
-    bool can_use_feature(true);  // Support enable/disable-verity since there's no
-    // feature-related baggage for these services.
-
-    if (!strcmp(argv[0], "remount")) {  // remount service is special since it
-        // used to be in-process/resident in adbd, so we maintain feature status.
-        auto&& features = adb_get_feature_set_or_die();
-        if (!CanUseFeature(*features, kFeatureRemountShell)) {
-            can_use_feature = false;
-        }
-    }
-
-    if (can_use_feature) {  // Legacy behavior fallback until restart or n/a?
+// remount, disable/enable-verity. There's only one "feature",
+// but they were all moved from adbd to external binaries in the
+// same release.
+static int process_remount_or_verity_service(const int argc, const char** argv) {
+    auto&& features = adb_get_feature_set_or_die();
+    if (CanUseFeature(*features, kFeatureRemountShell)) {
         std::vector<const char*> args = {"shell"};
         args.insert(args.cend(), argv, argv + argc);
         return adb_shell_noinput(args.size(), args.data());
@@ -1870,7 +1862,7 @@ int adb_commandline(int argc, const char** argv) {
         return adb_connect_command(android::base::StringPrintf("tcpip:%d", port));
     } else if (!strcmp(argv[0], "remount") || !strcmp(argv[0], "disable-verity") ||
                !strcmp(argv[0], "enable-verity")) {
-        return process_service(argc, argv);
+        return process_remount_or_verity_service(argc, argv);
     } else if (!strcmp(argv[0], "reboot") || !strcmp(argv[0], "reboot-bootloader") ||
                !strcmp(argv[0], "reboot-fastboot") || !strcmp(argv[0], "usb")) {
         std::string command;
