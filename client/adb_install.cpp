@@ -56,28 +56,22 @@ enum InstallMode {
 enum class CmdlineOption { None, Enable, Disable };
 }
 
-static bool can_use_feature(const char* feature) {
-    // We ignore errors here, if the device is missing, we'll notice when we try to push install.
-    auto&& features = adb_get_feature_set(nullptr);
-    if (!features) {
-        return false;
-    }
-    return CanUseFeature(*features, feature);
-}
-
 static InstallMode best_install_mode() {
-    if (can_use_feature(kFeatureCmd)) {
+    auto&& features = adb_get_feature_set_or_die();
+    if (CanUseFeature(*features, kFeatureCmd)) {
         return INSTALL_STREAM;
     }
     return INSTALL_PUSH;
 }
 
 static bool is_apex_supported() {
-    return can_use_feature(kFeatureApex);
+    auto&& features = adb_get_feature_set_or_die();
+    return CanUseFeature(*features, kFeatureApex);
 }
 
 static bool is_abb_exec_supported() {
-    return can_use_feature(kFeatureAbbExec);
+    auto&& features = adb_get_feature_set_or_die();
+    return CanUseFeature(*features, kFeatureAbbExec);
 }
 
 static int pm_command(int argc, const char** argv) {
