@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "93a7be7c_c9ce44f3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 28133
+      },
+      "writtenOn": "2022-03-15T10:08:46Z",
+      "side": 1,
+      "message": "Fine on chagallwifi. Adb works again.",
+      "revId": "1378ee408e864a97388eecc5864d3a06f5b08c4a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
