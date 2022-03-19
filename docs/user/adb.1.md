@@ -356,6 +356,14 @@ detach **SERIAL**
 &nbsp;&nbsp;&nbsp;&nbsp;Detach from a USB device identified by its **SERIAL** to allow use by other processes.
 
 
+# Features:
+
+host-features  
+&nbsp;&nbsp;&nbsp;&nbsp;list features supported by adb server.
+
+features  
+&nbsp;&nbsp;&nbsp;&nbsp;list features supported by both adb server and device.
+
 # ENVIRONMENT VARIABLES
 
 $ADB_TRACE
