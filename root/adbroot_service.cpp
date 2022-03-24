@@ -60,6 +60,17 @@ void ADBRootService::Register() {
     }
 }
 
+ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
+    uid_t uid = AIBinder_getCallingUid();
+    if (uid != AID_SYSTEM && uid != AID_SHELL) {
+        return SecurityException("Caller must be system or shell");
+    }
+
+    AutoMutex _l(lock_);
+    *_aidl_return = __android_log_is_debuggable();
+    return ndk::ScopedAStatus::ok();
+}
+
 ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
     uid_t uid = AIBinder_getCallingUid();
     if (uid != AID_SYSTEM) {

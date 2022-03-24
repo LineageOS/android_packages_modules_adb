@@ -18,6 +18,7 @@
 
 #include <aidl/android/adbroot/BnADBRootService.h>
 #include <android/binder_status.h>
+#include <log/log_properties.h>
 #include <utils/Mutex.h>
 
 namespace aidl {
@@ -32,6 +33,7 @@ class ADBRootService : public BnADBRootService {
 
     static void Register();
 
+    ndk::ScopedAStatus isSupported(bool* _aidl_return) override;
     ndk::ScopedAStatus setEnabled(bool enabled) override;
     ndk::ScopedAStatus getEnabled(bool* _aidl_return) override;
 

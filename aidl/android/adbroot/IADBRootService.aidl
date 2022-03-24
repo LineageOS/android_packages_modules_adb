@@ -17,6 +17,7 @@ package android.adbroot;
 
 /** {@hide} */
 interface IADBRootService {
+    boolean isSupported();
     void setEnabled(boolean enabled);
     boolean getEnabled();
 }
