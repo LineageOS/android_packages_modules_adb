@@ -16,6 +16,23 @@
       "message": "I\u0027m happy with that, makes sense to move the check here entirely",
       "revId": "d92263f0d8c06d2f68d267556adac7330b72e217",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5cdeb6cc_c9befa23",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 16185
+      },
+      "writtenOn": "2022-03-24T20:28:57Z",
+      "side": 1,
+      "message": "verified when spoofing to `user`",
+      "revId": "d92263f0d8c06d2f68d267556adac7330b72e217",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
