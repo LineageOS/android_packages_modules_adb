@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e97d5aa2_d50a7cb1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2022-03-24T15:08:25Z",
+      "side": 1,
+      "message": "I\u0027m happy with that, makes sense to move the check here entirely",
+      "revId": "d92263f0d8c06d2f68d267556adac7330b72e217",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
