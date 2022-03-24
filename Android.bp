@@ -189,7 +189,7 @@ library_linking_strategy_cc_defaults {
         android: {
             shared_libs: ["libcrypto"],
         },
-        linux_glibc: {
+        host_linux: {
             static_libs: ["libcrypto_static"],
         },
         recovery: {
