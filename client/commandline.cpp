@@ -44,10 +44,12 @@
 #include <android-base/strings.h>
 
 #if !defined(_WIN32)
-#include <signal.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#else
+#define _POSIX
+#include <signal.h>
 #endif
 
 #include <google/protobuf/text_format.h>
@@ -98,6 +100,7 @@ static void help() {
         " --one-device SERIAL|USB  only allowed with 'start-server' or 'server nodaemon', server"
         " will only connect to one USB device, specified by a serial number or USB device"
         " address.\n"
+        " --exit-on-write-error    exit if stdout is closed\n"
         "\n"
         "general commands:\n"
         " devices [-l]             list connected devices (-l for long output)\n"
@@ -283,57 +286,55 @@ static void stdin_raw_restore() {
 }
 #endif
 
+int read_and_dump_protocol(borrowed_fd fd, StandardStreamsCallbackInterface* callback) {
+    int exit_code = 0;
+    std::unique_ptr<ShellProtocol> protocol = std::make_unique<ShellProtocol>(fd);
+    if (!protocol) {
+      LOG(ERROR) << "failed to allocate memory for ShellProtocol object";
+      return 1;
+    }
+    while (protocol->Read()) {
+      if (protocol->id() == ShellProtocol::kIdStdout) {
+        if (!callback->OnStdout(protocol->data(), protocol->data_length())) {
+          exit_code = SIGPIPE + 128;
+          break;
+        }
+      } else if (protocol->id() == ShellProtocol::kIdStderr) {
+        if (!callback->OnStderr(protocol->data(), protocol->data_length())) {
+          exit_code = SIGPIPE + 128;
+          break;
+        }
+      } else if (protocol->id() == ShellProtocol::kIdExit) {
+        // data() returns a char* which doesn't have defined signedness.
+        // Cast to uint8_t to prevent 255 from being sign extended to INT_MIN,
+        // which doesn't get truncated on Windows.
+        exit_code = static_cast<uint8_t>(protocol->data()[0]);
+      }
+    }
+    return exit_code;
+}
+
 int read_and_dump(borrowed_fd fd, bool use_shell_protocol,
                   StandardStreamsCallbackInterface* callback) {
     int exit_code = 0;
     if (fd < 0) return exit_code;
 
-    std::unique_ptr<ShellProtocol> protocol;
-    int length = 0;
-
-    char raw_buffer[BUFSIZ];
-    char* buffer_ptr = raw_buffer;
     if (use_shell_protocol) {
-        protocol = std::make_unique<ShellProtocol>(fd);
-        if (!protocol) {
-            LOG(ERROR) << "failed to allocate memory for ShellProtocol object";
-            return 1;
+      exit_code = read_and_dump_protocol(fd, callback);
+    } else {
+      char raw_buffer[BUFSIZ];
+      char* buffer_ptr = raw_buffer;
+      while (true) {
+        D("read_and_dump(): pre adb_read(fd=%d)", fd.get());
+        int length = adb_read(fd, raw_buffer, sizeof(raw_buffer));
+        D("read_and_dump(): post adb_read(fd=%d): length=%d", fd.get(), length);
+        if (length <= 0) {
+          break;
         }
-        buffer_ptr = protocol->data();
-    }
-
-    while (true) {
-        if (use_shell_protocol) {
-            if (!protocol->Read()) {
-                break;
-            }
-            length = protocol->data_length();
-            switch (protocol->id()) {
-                case ShellProtocol::kIdStdout:
-                    callback->OnStdout(buffer_ptr, length);
-                    break;
-                case ShellProtocol::kIdStderr:
-                    callback->OnStderr(buffer_ptr, length);
-                    break;
-                case ShellProtocol::kIdExit:
-                    // data() returns a char* which doesn't have defined signedness.
-                    // Cast to uint8_t to prevent 255 from being sign extended to INT_MIN,
-                    // which doesn't get truncated on Windows.
-                    exit_code = static_cast<uint8_t>(protocol->data()[0]);
-                    continue;
-                default:
-                    continue;
-            }
-            length = protocol->data_length();
-        } else {
-            D("read_and_dump(): pre adb_read(fd=%d)", fd.get());
-            length = adb_read(fd, raw_buffer, sizeof(raw_buffer));
-            D("read_and_dump(): post adb_read(fd=%d): length=%d", fd.get(), length);
-            if (length <= 0) {
-                break;
-            }
-            callback->OnStdout(buffer_ptr, length);
+        if (!callback->OnStdout(buffer_ptr, length)) {
+          break;
         }
+      }
     }
 
     return callback->Done(exit_code);
@@ -1405,8 +1406,8 @@ class TrackAppStreamsCallback : public DefaultStandardStreamsCallback {
     TrackAppStreamsCallback() : DefaultStandardStreamsCallback(nullptr, nullptr) {}
 
     // Assume the buffer contains at least 4 bytes of valid data.
-    void OnStdout(const char* buffer, int length) override {
-        if (length < 4) return;  // Unexpected length received. Do nothing.
+    bool OnStdout(const char* buffer, size_t length) override {
+        if (length < 4) return true;  // Unexpected length received. Do nothing.
 
         adb::proto::AppProcesses binary_proto;
         // The first 4 bytes are the length of remaining content in hexadecimal format.
@@ -1414,11 +1415,13 @@ class TrackAppStreamsCallback : public DefaultStandardStreamsCallback {
         char summary[24];  // The following string includes digits and 16 fixed characters.
         int written = snprintf(summary, sizeof(summary), "Process count: %d\n",
                                binary_proto.process_size());
-        OnStream(nullptr, stdout, summary, written);
+        if (!OnStream(nullptr, stdout, summary, written, false)) {
+          return false;
+        }
 
         std::string string_proto;
         google::protobuf::TextFormat::PrintToString(binary_proto, &string_proto);
-        OnStream(nullptr, stdout, string_proto.data(), string_proto.length());
+        return OnStream(nullptr, stdout, string_proto.data(), string_proto.length(), false);
     }
 
   private:
@@ -1626,6 +1629,8 @@ int adb_commandline(int argc, const char** argv) {
             server_socket_str = argv[1];
             --argc;
             ++argv;
+        } else if (strcmp(argv[0], "--exit-on-write-error") == 0) {
+            DEFAULT_STANDARD_STREAMS_CALLBACK.ReturnErrors(true);
         } else {
             /* out of recognized modifiers and flags */
             break;
