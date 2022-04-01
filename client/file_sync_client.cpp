@@ -549,7 +549,11 @@ class SyncConnection {
             // compromised device/service might be able to
             // traverse across directories on the host. Let's
             // shut that door!
-            if (strchr(buf, '/')) {
+            if (strchr(buf, '/')
+#if defined(_WIN32)
+                || strchr(buf, '\\')
+#endif
+            ) {
                 return false;
             }
 
