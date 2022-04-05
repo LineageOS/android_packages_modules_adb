@@ -544,15 +544,17 @@ class SyncConnection {
 
             if (!ReadFdExactly(fd, buf, len)) return false;
             buf[len] = 0;
-
-            // Address the highly unlikely scenario wherein a
+            // Address the unlikely scenario wherein a
             // compromised device/service might be able to
             // traverse across directories on the host. Let's
             // shut that door!
-            if (strchr(buf, '/')) {
+            if (strchr(buf, '/')
+#if defined(_WIN32)
+                || strchr(buf, '\\')
+#endif
+            ) {
                 return false;
             }
-
             callback(dent.mode, dent.size, dent.mtime, buf);
         }
     }
