@@ -523,7 +523,9 @@ class ShellTest(DeviceTest):
         stdout, _ = self.device.shell(["cat", log_path])
         self.assertEqual(stdout.strip(), "SIGHUP")
 
-    def test_exit_stress(self):
+    # Temporarily disabled because it seems to cause later instability.
+    # http://b/228114748
+    def disabled_test_exit_stress(self):
         """Hammer `adb shell exit 42` with multiple threads."""
         thread_count = 48
         result = dict()
