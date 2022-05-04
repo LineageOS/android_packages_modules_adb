@@ -14,8 +14,10 @@ cc_library {
     defaults: ["adbd_defaults"],
 
     srcs: ["adbd_fs.cpp"],
+
+    shared_libs: ["libbase"],
+
     static_libs: [
-        "libbase",
         "libcutils",
         "liblog",
     ],
