@@ -67,10 +67,10 @@ cc_defaults {
     recovery_available: false,
 
     static_libs: [
-        "libbase",
         "libssl",
     ],
     shared_libs: [
+        "libbase",
         "libcrypto",
         "liblog",
         "libadb_pairing_auth",
@@ -147,10 +147,8 @@ cc_defaults {
 
     stl: "libc++_static",
 
-    static_libs: [
-        "libbase",
-    ],
     shared_libs: [
+        "libbase",
         "libcrypto",
         "libcrypto_utils",
         "libcutils",
@@ -176,7 +174,7 @@ cc_library {
 
     static_libs: [
         // Statically link libadb_crypto because it is not
-	// ABI-stable.
+        // ABI-stable.
         "libadb_crypto",
         "libadb_protos",
     ],
