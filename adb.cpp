@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <condition_variable>
@@ -827,7 +828,7 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
         return -1;
     }
 
-    WCHAR   args[64];
+    WCHAR args[4096];
     if (one_device) {
         snwprintf(args, arraysize(args),
                   L"adb -L %s fork-server server --reply-fd %d --one-device %s",
@@ -989,6 +990,11 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
         if (one_device) {
             child_argv.push_back("--one-device");
             child_argv.push_back(one_device);
+        } else if (access("/etc/adb/one_device_required", F_OK) == 0) {
+            fprintf(stderr,
+                    "adb: cannot start server: --one-device option is required for this system in "
+                    "order to start adb.\n");
+            return -1;
         }
         child_argv.push_back(nullptr);
         int result = execv(path.c_str(), const_cast<char* const*>(child_argv.data()));
