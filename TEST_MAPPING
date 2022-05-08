@@ -36,7 +36,7 @@
       "name": "MicrodroidHostTestCases"
     }
   ],
-  "hwasan-postsubmit": [
+  "hwasan-presubmit": [
     {
       "name": "adbd_test"
     },
