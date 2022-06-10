@@ -33,6 +33,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <string>
 #include <thread>
 
 #include <adb/crypto/rsa_2048_key.h>
@@ -60,6 +61,7 @@
 
 using namespace adb::crypto;
 using namespace adb::tls;
+using namespace std::string_literals;
 using android::base::ScopedLockAssertion;
 using TlsError = TlsConnection::TlsError;
 
@@ -1010,7 +1012,7 @@ atransport* acquire_one_transport(TransportType type, const char* serial, Transp
         } else if (serial) {
             if (t->MatchesTarget(serial)) {
                 if (result) {
-                    *error_out = "more than one device";
+                    *error_out = "more than one device with serial "s + serial;
                     if (is_ambiguous) *is_ambiguous = true;
                     result = nullptr;
                     break;
@@ -1020,7 +1022,7 @@ atransport* acquire_one_transport(TransportType type, const char* serial, Transp
         } else {
             if (type == kTransportUsb && t->type == kTransportUsb) {
                 if (result) {
-                    *error_out = "more than one device";
+                    *error_out = "more than one USB device";
                     if (is_ambiguous) *is_ambiguous = true;
                     result = nullptr;
                     break;
