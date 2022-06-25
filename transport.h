@@ -31,6 +31,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include <android-base/macros.h>
@@ -298,6 +299,10 @@ class atransport : public enable_weak_from_this<atransport> {
 #if ADB_HOST
     void SetUsbHandle(usb_handle* h) { usb_handle_ = h; }
     usb_handle* GetUsbHandle() { return usb_handle_; }
+
+    // Interface for management/filter on forward:reverse: configuration.
+    void UpdateReverseConfig(std::string_view service_addr);
+    bool IsReverseConfigured(const std::string& local_addr);
 #endif
 
     const TransportId id;
@@ -426,6 +431,13 @@ class atransport : public enable_weak_from_this<atransport> {
     std::mutex mutex_;
 
     bool delayed_ack_ = false;
+
+#if ADB_HOST
+    // Track remote addresses against local addresses (configured)
+    // through `adb reverse` commands.
+    // Access constrained to primary thread by virtue of check_main_thread().
+    std::unordered_map<std::string, std::string> reverse_forwards_;
+#endif
 
     DISALLOW_COPY_AND_ASSIGN(atransport);
 };
