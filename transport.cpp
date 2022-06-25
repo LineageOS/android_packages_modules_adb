@@ -1219,8 +1219,10 @@ bool atransport::HandleRead(std::unique_ptr<apacket> p) {
     VLOG(TRANSPORT) << dump_packet(serial.c_str(), "from remote", p.get());
     apacket* packet = p.release();
 
-    // TODO: Does this need to run on the main thread?
+    // This needs to run on the main thread since the associated fdevent
+    // message pump exists in that context.
     fdevent_run_on_main_thread([packet, this]() { handle_packet(packet, this); });
+
     return true;
 }
 
@@ -1614,6 +1616,63 @@ void unregister_usb_transport(usb_handle* usb) {
         return t->GetUsbHandle() == usb && t->GetConnectionState() == kCsNoPerm;
     });
 }
+
+// Track reverse:forward commands, so that info can be used to develop
+// an 'allow-list':
+//   - adb reverse tcp:<device_port> localhost:<host_port> : responds with the
+//   device_port
+//   - adb reverse --remove tcp:<device_port> : responds OKAY
+//   - adb reverse --remove-all : responds OKAY
+void atransport::UpdateReverseConfig(std::string_view service_addr) {
+    check_main_thread();
+    if (!android::base::ConsumePrefix(&service_addr, "reverse:")) {
+        return;
+    }
+
+    if (android::base::ConsumePrefix(&service_addr, "forward:")) {
+        // forward:[norebind:]<remote>;<local>
+        bool norebind = android::base::ConsumePrefix(&service_addr, "norebind:");
+        auto it = service_addr.find(';');
+        if (it == std::string::npos) {
+            return;
+        }
+        std::string remote(service_addr.substr(0, it));
+
+        if (norebind && reverse_forwards_.find(remote) != reverse_forwards_.end()) {
+            // This will fail, don't update the map.
+            LOG(DEBUG) << "ignoring reverse forward that will fail due to norebind";
+            return;
+        }
+
+        std::string local(service_addr.substr(it + 1));
+        reverse_forwards_[remote] = local;
+    } else if (android::base::ConsumePrefix(&service_addr, "killforward:")) {
+        // kill-forward:<remote>
+        auto it = service_addr.find(';');
+        if (it != std::string::npos) {
+            return;
+        }
+        reverse_forwards_.erase(std::string(service_addr));
+    } else if (service_addr == "killforward-all") {
+        reverse_forwards_.clear();
+    } else if (service_addr == "list-forward") {
+        LOG(DEBUG) << __func__ << " ignoring --list";
+    } else {  // Anything else we need to know about?
+        LOG(FATAL) << "unhandled reverse service: " << service_addr;
+    }
+}
+
+// Is this an authorized :connect request?
+bool atransport::IsReverseConfigured(const std::string& local_addr) {
+    check_main_thread();
+    for (const auto& [remote, local] : reverse_forwards_) {
+        if (local == local_addr) {
+            return true;
+        }
+    }
+    return false;
+}
+
 #endif
 
 bool check_header(apacket* p, atransport* t) {
