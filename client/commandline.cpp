@@ -46,7 +46,6 @@
 #if !defined(_WIN32)
 #include <sys/ioctl.h>
 #include <termios.h>
-#include <unistd.h>
 #else
 #define _POSIX
 #include <signal.h>
@@ -125,7 +124,6 @@ static void help() {
         "       acceptfd:<fd> (listen only)\n"
         " forward --remove LOCAL   remove specific forward socket connection\n"
         " forward --remove-all     remove all forward socket connections\n"
-        " ppp TTY [PARAMETER...]   run PPP over USB\n"
         " reverse --list           list all reverse socket connections from device\n"
         " reverse [--no-rebind] REMOTE LOCAL\n"
         "     reverse socket connection using:\n"
@@ -1007,53 +1005,6 @@ static int adb_wipe_devices() {
         fprintf(stderr, "adb: got unexpected message from rescue wipe %s\n", message.c_str());
     }
     return 1;
-}
-
-static int ppp(int argc, const char** argv) {
-#if defined(_WIN32)
-    error_exit("adb %s not implemented on Win32", argv[0]);
-    __builtin_unreachable();
-#else
-    if (argc < 2) error_exit("usage: adb %s <adb service name> [ppp opts]", argv[0]);
-
-    const char* adb_service_name = argv[1];
-    std::string error_message;
-    int fd = adb_connect(adb_service_name, &error_message);
-    if (fd < 0) {
-        error_exit("could not open adb service %s: %s", adb_service_name, error_message.c_str());
-    }
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror_exit("fork failed");
-    }
-
-    if (pid == 0) {
-        // child side
-        int i;
-
-        // copy args
-        const char** ppp_args = (const char**)alloca(sizeof(char*) * argc + 1);
-        ppp_args[0] = "pppd";
-        for (i = 2 ; i < argc ; i++) {
-            //argv[2] and beyond become ppp_args[1] and beyond
-            ppp_args[i - 1] = argv[i];
-        }
-        ppp_args[i-1] = nullptr;
-
-        dup2(fd, STDIN_FILENO);
-        dup2(fd, STDOUT_FILENO);
-        adb_close(STDERR_FILENO);
-        adb_close(fd);
-
-        execvp("pppd", (char* const*)ppp_args);
-        perror_exit("exec pppd failed");
-    }
-
-    // parent side
-    adb_close(fd);
-    return 0;
-#endif /* !defined(_WIN32) */
 }
 
 static bool wait_for_device(const char* service,
@@ -2067,8 +2018,6 @@ int adb_commandline(int argc, const char** argv) {
     else if (!strcmp(argv[0], "logcat") || !strcmp(argv[0], "lolcat") ||
              !strcmp(argv[0], "longcat")) {
         return logcat(argc, argv);
-    } else if (!strcmp(argv[0], "ppp")) {
-        return ppp(argc, argv);
     } else if (!strcmp(argv[0], "start-server")) {
         std::string error;
         const int result = adb_connect("host:start-server", &error);
