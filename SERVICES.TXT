@@ -79,9 +79,6 @@ host:<request>
     interpreted as 'any single device or emulator connected to/running on
     the host'.
 
-<host-prefix>:get-product
-    XXX
-
 <host-prefix>:get-serialno
     Returns the serial number of the corresponding device/emulator.
     Note that emulator serial numbers are of the form "emulator-5554"
