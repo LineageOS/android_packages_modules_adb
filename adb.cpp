@@ -487,7 +487,16 @@ void handle_packet(apacket *p, atransport *t)
         // byte. The client sent strings with null termination, which post-string_view, start
         // being interpreted as part of the string, unless we explicitly strip them.
         address = StripTrailingNulls(address);
-
+#if ADB_HOST
+        // The incoming address (from the payload) might be some other
+        // target (e.g tcp:<ip>:8000), however we do not allow *any*
+        // such requests - namely, those from (a potentially compromised)
+        // adbd (reverse:forward: source) port transport.
+        if (!t->IsReverseConfigured(address.data())) {
+            LOG(FATAL) << __func__ << " disallowed connect to " << address << " from "
+                       << t->serial_name();
+        }
+#endif
         asocket* s = create_local_service_socket(address, t);
         if (s == nullptr) {
             send_close(0, p->msg.arg0, t);

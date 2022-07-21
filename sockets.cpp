@@ -560,6 +560,12 @@ asocket* create_remote_socket(unsigned id, atransport* t) {
 }
 
 void connect_to_remote(asocket* s, std::string_view destination) {
+#if ADB_HOST
+    // Snoop reverse:forward: requests to track them so that an
+    // appropriate filter (to figure out whether the remote is
+    // allowed to connect locally) can be applied.
+    s->transport->UpdateReverseConfig(destination);
+#endif
     D("Connect_to_remote call RS(%d) fd=%d", s->id, s->fd);
     apacket* p = get_apacket();
 
