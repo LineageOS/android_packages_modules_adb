@@ -227,6 +227,28 @@ track-jdwp
 
     Note that there is no single-shot service to retrieve the list only once.
 
+track-app:
+    Improved version of "track-jdwp" service which also mentions whether the
+    app is profileable and its architecture. Each time the list changes,
+    a new messeage is sent (this service never stops).
+
+    Each message features a hex4 length prefix followed by a
+    human-readable protocol buffer. e.g.:
+
+    process {
+      pid: 18595
+      debuggable: true
+      architecture: "arm64"
+    }
+    process {
+      pid: 18407
+      debuggable: true
+      profileable: true
+      architecture: "arm64"
+    }
+
+    Note: Generate a parser from [app_processes.proto].
+
 sync:
     This starts the file synchronization service, used to implement "adb push"
     and "adb pull". Since this service is pretty complex, it will be detailed
