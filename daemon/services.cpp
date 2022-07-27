@@ -49,6 +49,7 @@
 #include "adb_utils.h"
 #include "services.h"
 #include "socket_spec.h"
+#include "sysdeps.h"
 #include "transport.h"
 
 #include "daemon/file_sync_service.h"
@@ -318,7 +319,9 @@ unique_fd daemon_service_to_fd(std::string_view name, atransport* transport) {
     }
 #endif
 
-    if (android::base::ConsumePrefix(&name, "jdwp:")) {
+    if (android::base::ConsumePrefix(&name, "dev:")) {
+        return unique_fd{unix_open(name, O_RDWR | O_CLOEXEC)};
+    } else if (android::base::ConsumePrefix(&name, "jdwp:")) {
         pid_t pid;
         if (!ParseUint(&pid, name)) {
             return unique_fd{};
