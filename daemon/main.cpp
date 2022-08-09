@@ -159,6 +159,9 @@ static void drop_privileges(int server_port) {
 
         if (root_seclabel != nullptr) {
             if (selinux_android_setcon(root_seclabel) < 0) {
+                // If we failed to become root, don't try again to avoid a
+                // restart loop.
+                android::base::SetProperty("service.adb.root", "0");
                 LOG(FATAL) << "Could not set SELinux context";
             }
         }
