@@ -753,8 +753,15 @@ phony {
         "libadbd_fs",
         "abb",
         "reboot",
-        "set-verity-state",
-    ]
+    ],
+    product_variables: {
+        debuggable: {
+            required: [
+                "remount",
+                "set-verity-state",
+            ],
+        },
+    },
 }
 
 phony {
