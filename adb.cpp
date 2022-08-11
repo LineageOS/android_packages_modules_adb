@@ -398,8 +398,6 @@ static void handle_new_connection(atransport* t, apacket* p) {
         send_auth_request(t);
     }
 #endif
-
-    update_transports();
 }
 
 void handle_packet(apacket *p, atransport *t)
