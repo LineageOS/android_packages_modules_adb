@@ -62,6 +62,7 @@ cc_defaults {
                 "-lpthread",
                 "-framework CoreFoundation",
                 "-framework IOKit",
+                "-framework Security",
                 "-lobjc",
             ],
             cflags: [
