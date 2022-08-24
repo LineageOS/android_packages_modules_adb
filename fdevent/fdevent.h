@@ -56,7 +56,6 @@ struct fdevent final {
     uint64_t id;
 
     unique_fd fd;
-    int force_eof = 0;
 
     uint16_t state = 0;
     std::optional<std::chrono::milliseconds> timeout;
