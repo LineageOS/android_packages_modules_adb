@@ -24,7 +24,7 @@ _adb() {
         _init_completion || return
     fi
 
-    local where i cur serial
+    local where i cur serial state transport
     COMPREPLY=()
 
     serial="${ANDROID_SERIAL:-none}"
@@ -39,6 +39,9 @@ _adb() {
                 where=OPT_PATH
                 ;;
             -*)
+                where=OPTIONS
+                ;;
+            wait-for-*)
                 where=OPTIONS
                 ;;
             *)
@@ -59,6 +62,15 @@ _adb() {
 
     OPTIONS="-d -e -s -p"
     COMMAND="devices connect disconnect push pull sync shell emu logcat lolcat forward jdwp install uninstall bugreport help version start-server kill-server get-state get-serialno status-window remount reboot reboot-bootloader root usb tcpip disable-verity"
+
+    for state in device recovery rescue sideload bootloader disconnect ; do
+        for transport in -usb -local -any "" ; do
+            WAIT_COMMAND=wait-for${transport}-${state}
+            if [[ -n "${cur}" && $WAIT_COMMAND == "${cur}"* ]] ; then
+                COMMAND+=" $WAIT_COMMAND"
+            fi
+        done
+    done
 
     case $where in
         OPTIONS|OPT_SERIAL|OPT_PATH)
