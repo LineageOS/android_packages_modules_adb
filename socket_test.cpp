@@ -125,6 +125,8 @@ static void CreateCloser(CloseWithPacketArg* arg) {
             data.resize(MAX_PAYLOAD);
             arg->bytes_written += data.size();
             int ret = s->enqueue(s, std::move(data));
+
+            // Return value of 0 implies that more data can be accepted.
             if (ret == 1) {
                 socket_filled = true;
                 break;
@@ -193,7 +195,9 @@ TEST_F(LocalSocketTest, read_from_closing_socket) {
     // Verify if we can read successfully.
     std::vector<char> buf(arg.bytes_written);
     ASSERT_NE(0u, arg.bytes_written);
-    ASSERT_EQ(true, ReadFdExactly(socket_fd[0], buf.data(), buf.size()));
+
+    ASSERT_EQ(true, ReadFdExactly(socket_fd[0], buf.data(), buf.size()));  // TODO: b/237341044
+
     ASSERT_EQ(0, adb_close(socket_fd[0]));
 
     WaitForFdeventLoop();
@@ -267,9 +271,9 @@ TEST_F(LocalSocketTest, flush_after_shutdown) {
 
 #if defined(__linux__)
 
-static void ClientThreadFunc() {
+static void ClientThreadFunc(const int assigned_port) {
     std::string error;
-    int fd = network_loopback_client(5038, SOCK_STREAM, &error);
+    const int fd = network_loopback_client(assigned_port, SOCK_STREAM, &error);
     ASSERT_GE(fd, 0) << error;
     std::this_thread::sleep_for(1s);
     ASSERT_EQ(0, adb_close(fd));
@@ -278,12 +282,24 @@ static void ClientThreadFunc() {
 // This test checks if we can close sockets in CLOSE_WAIT state.
 TEST_F(LocalSocketTest, close_socket_in_CLOSE_WAIT_state) {
     std::string error;
-    int listen_fd = network_inaddr_any_server(5038, SOCK_STREAM, &error);
+    // Allow the system to allocate an available port.
+    const int listen_fd = network_inaddr_any_server(0, SOCK_STREAM, &error);
     ASSERT_GE(listen_fd, 0);
 
-    std::thread client_thread(ClientThreadFunc);
+    sockaddr_storage ss;
+    socklen_t ss_size = sizeof(ss);
+    ASSERT_EQ(0, adb_getsockname(listen_fd, reinterpret_cast<sockaddr*>(&ss), &ss_size));
+    int assigned_port;
+    if (ss.ss_family == AF_INET) {
+        assigned_port = ntohs(reinterpret_cast<sockaddr_in*>(&ss)->sin_port);
+    } else {
+        assigned_port = ntohs(reinterpret_cast<sockaddr_in6*>(&ss)->sin6_port);
+    }
+    ASSERT_GE(assigned_port, 0);
 
-    int accept_fd = adb_socket_accept(listen_fd, nullptr, nullptr);
+    std::thread client_thread(ClientThreadFunc, assigned_port);
+    const int accept_fd = adb_socket_accept(listen_fd, nullptr, nullptr);
+
     ASSERT_GE(accept_fd, 0);
 
     PrepareThread();
