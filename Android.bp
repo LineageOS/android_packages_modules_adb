@@ -824,7 +824,7 @@ cc_test {
         "mdns_test.cpp",
     ],
 
-    test_config: "adb_test.xml",
+    test_config: "adbd_test.xml",
 
     target: {
         android: {
