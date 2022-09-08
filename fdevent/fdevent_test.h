@@ -46,8 +46,6 @@ static void WaitForFdeventLoop() {
 
 class FdeventTest : public ::testing::Test {
   protected:
-    unique_fd dummy;
-
     ~FdeventTest() {
         if (thread_.joinable()) {
             TerminateThread();
@@ -67,32 +65,13 @@ class FdeventTest : public ::testing::Test {
 
     // Register a placeholder socket used to wake up the fdevent loop to tell it to die.
     void PrepareThread() {
-        int dummy_fds[2];
-        if (adb_socketpair(dummy_fds) != 0) {
-            FAIL() << "failed to create socketpair: " << strerror(errno);
-        }
-
-        asocket* dummy_socket = create_local_socket(unique_fd(dummy_fds[1]));
-        if (!dummy_socket) {
-            FAIL() << "failed to create local socket: " << strerror(errno);
-        }
-        dummy_socket->ready(dummy_socket);
-        dummy.reset(dummy_fds[0]);
-
         thread_ = std::thread([]() { fdevent_loop(); });
         WaitForFdeventLoop();
     }
 
-    size_t GetAdditionalLocalSocketCount() {
-        // placeholder socket installed in PrepareThread()
-        return 1;
-    }
-
     void TerminateThread() {
         fdevent_terminate_loop();
-        ASSERT_TRUE(WriteFdExactly(dummy, "", 1));
         thread_.join();
-        dummy.reset();
     }
 
     std::thread thread_;
