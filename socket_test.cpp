@@ -99,7 +99,7 @@ TEST_F(LocalSocketTest, smoke) {
 
     // Wait until the local sockets are closed.
     WaitForFdeventLoop();
-    ASSERT_EQ(GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    ASSERT_EQ(0u, fdevent_installed_count());
     TerminateThread();
 }
 
@@ -165,11 +165,11 @@ TEST_F(LocalSocketTest, close_socket_with_packet) {
     ASSERT_EQ(0, adb_close(cause_close_fd[0]));
 
     WaitForFdeventLoop();
-    EXPECT_EQ(1u + GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    EXPECT_EQ(1u, fdevent_installed_count());
     ASSERT_EQ(0, adb_close(socket_fd[0]));
 
     WaitForFdeventLoop();
-    ASSERT_EQ(GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    ASSERT_EQ(0u, fdevent_installed_count());
     TerminateThread();
 }
 
@@ -190,7 +190,7 @@ TEST_F(LocalSocketTest, read_from_closing_socket) {
     ASSERT_EQ(0, adb_close(cause_close_fd[0]));
 
     WaitForFdeventLoop();
-    EXPECT_EQ(1u + GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    EXPECT_EQ(1u, fdevent_installed_count());
 
     // Verify if we can read successfully.
     std::vector<char> buf(arg.bytes_written);
@@ -201,7 +201,7 @@ TEST_F(LocalSocketTest, read_from_closing_socket) {
     ASSERT_EQ(0, adb_close(socket_fd[0]));
 
     WaitForFdeventLoop();
-    ASSERT_EQ(GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    ASSERT_EQ(0u, fdevent_installed_count());
     TerminateThread();
 }
 
@@ -222,13 +222,13 @@ TEST_F(LocalSocketTest, write_error_when_having_packets) {
     CreateCloser(&arg);
 
     WaitForFdeventLoop();
-    EXPECT_EQ(2u + GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    EXPECT_EQ(2u, fdevent_installed_count());
     ASSERT_EQ(0, adb_close(socket_fd[0]));
 
     std::this_thread::sleep_for(2s);
 
     WaitForFdeventLoop();
-    ASSERT_EQ(GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    ASSERT_EQ(0u, fdevent_installed_count());
     TerminateThread();
 }
 
@@ -265,7 +265,7 @@ TEST_F(LocalSocketTest, flush_after_shutdown) {
     adb_close(tail_fd[0]);
 
     WaitForFdeventLoop();
-    ASSERT_EQ(GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    ASSERT_EQ(0u, fdevent_installed_count());
     TerminateThread();
 }
 
@@ -310,13 +310,13 @@ TEST_F(LocalSocketTest, close_socket_in_CLOSE_WAIT_state) {
     });
 
     WaitForFdeventLoop();
-    EXPECT_EQ(1u + GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    EXPECT_EQ(1u, fdevent_installed_count());
 
     // Wait until the client closes its socket.
     client_thread.join();
 
     WaitForFdeventLoop();
-    ASSERT_EQ(GetAdditionalLocalSocketCount(), fdevent_installed_count());
+    ASSERT_EQ(0u, fdevent_installed_count());
     TerminateThread();
 }
 
