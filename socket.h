@@ -46,7 +46,7 @@ struct asocket {
 
     // flag: set when the socket failed to write, so the socket will not wait to
     // write packets and close directly.
-    bool has_write_error = 0;
+    bool has_write_error = false;
 
     /* flag: quit adbd when both ends close the
      * local service socket
