@@ -67,7 +67,7 @@ struct asocket {
      * but packets are still queued for delivery
      * TODO: This should be a boolean.
      */
-    int closing = 0;
+    bool closing = false;
 
     // flag: set when the socket failed to write, so the socket will not wait to
     // write packets and close directly.
