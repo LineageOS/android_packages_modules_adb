@@ -371,7 +371,7 @@ static void local_socket_close(asocket* s) {
     /* otherwise, put on the closing list
     */
     D("LS(%d): closing", s->id);
-    s->closing = 1;
+    s->closing = true;
     fdevent_del(s->fde, FDE_READ);
     remove_socket(s);
     D("LS(%d): put on socket_closing_list fd=%d", s->id, s->fd);
