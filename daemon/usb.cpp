@@ -61,10 +61,10 @@ using android::base::StringPrintf;
 // Also, each submitted operation does an allocation in the kernel of that size, so we want to
 // minimize our queue depth while still maintaining a deep enough queue to keep the USB stack fed.
 static constexpr size_t kUsbReadQueueDepth = 8;
-static constexpr size_t kUsbReadSize = 4 * PAGE_SIZE;
+static constexpr size_t kUsbReadSize = 16384;
 
 static constexpr size_t kUsbWriteQueueDepth = 8;
-static constexpr size_t kUsbWriteSize = 4 * PAGE_SIZE;
+static constexpr size_t kUsbWriteSize = 16384;
 
 static const char* to_string(enum usb_functionfs_event_type type) {
     switch (type) {
