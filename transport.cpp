@@ -726,9 +726,27 @@ void update_transports() {
 
 #endif  // ADB_HOST
 
+// The transport listeners communicate with the transports list via fdevent. tmsg structure is a
+// container used as message unit and written to a pipe in order to communicate the transport
+// (pointer) and the action to perform.
+//
+//     Transport listener         FDEVENT          Transports list
+//     --------------------------------------------------------------
+//     (&transport,action)   ->    tmsg     ->   (&transport, action)
+//
+// TODO: Figure out if this fdevent bridge really is necessary? With the re-entrant lock to sync
+// access, what prevents us from "simply" updating the transport_list directly?
+
 struct tmsg {
     atransport* transport;
-    int action;
+
+    enum struct Action : int {
+        UNREGISTER = 0,  // Unregister the transport from transport list (typically a device has
+                         // been unplugged from USB or disconnected from TCP.
+        REGISTER = 1,  // Register the transport to the transport list (typically a device has been
+                       // plugged via USB or connected via TCP.
+    };
+    Action action;
 };
 
 static int transport_read_action(int fd, struct tmsg* m) {
@@ -791,7 +809,7 @@ static void transport_registration_func(int _fd, unsigned ev, void*) {
 
     t = m.transport;
 
-    if (m.action == 0) {
+    if (m.action == tmsg::Action::UNREGISTER) {
         D("transport: %s deleting", t->serial.c_str());
 
         {
@@ -888,7 +906,7 @@ void kick_all_transports_by_auth_key(std::string_view auth_key) {
 void register_transport(atransport* transport) {
     tmsg m;
     m.transport = transport;
-    m.action = 1;
+    m.action = tmsg::Action::REGISTER;
     D("transport: %s registered", transport->serial.c_str());
     if (transport_write_action(transport_registration_send, &m)) {
         PLOG(FATAL) << "cannot write transport registration socket";
@@ -898,7 +916,7 @@ void register_transport(atransport* transport) {
 static void remove_transport(atransport* transport) {
     tmsg m;
     m.transport = transport;
-    m.action = 0;
+    m.action = tmsg::Action::UNREGISTER;
     D("transport: %s removed", transport->serial.c_str());
     if (transport_write_action(transport_registration_send, &m)) {
         PLOG(FATAL) << "cannot write transport registration socket";
