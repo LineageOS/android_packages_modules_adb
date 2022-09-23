@@ -394,6 +394,11 @@ cc_test_host {
             shared_libs: ["AdbWinApi"],
         },
     },
+
+    test_options: {
+        // TODO(b/247985207) remove "no-remote" tag when b/247985207 is fixed.
+        tags: ["no-remote"],
+    }
 }
 
 cc_binary_host {
@@ -857,14 +862,6 @@ python_test_host {
     ],
     test_config: "adb_integration_test_adb.xml",
     test_suites: ["general-tests"],
-    version: {
-        py2: {
-            enabled: false,
-        },
-        py3: {
-            enabled: true,
-        },
-    },
     test_options: {
         unit_test: false,
     },
@@ -881,14 +878,6 @@ python_test_host {
     ],
     test_config: "adb_integration_test_device.xml",
     test_suites: ["general-tests"],
-    version: {
-        py2: {
-            enabled: false,
-        },
-        py3: {
-            enabled: true,
-        },
-    },
     test_options: {
         unit_test: false,
     },
