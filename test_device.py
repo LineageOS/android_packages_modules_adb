@@ -629,7 +629,6 @@ class ArgumentEscapingTest(DeviceTest):
             os.remove(tf.name)
 
 
-@unittest.skip("b/172372960: temporarily disabled due to flakiness")
 class RootUnrootTest(DeviceTest):
     def _test_root(self):
         message = self.device.root()
@@ -965,7 +964,7 @@ class FileOperationsTest:
             Disabled because this broken on the adbd side as well: b/141943968
             """
             with tempfile.NamedTemporaryFile() as tmp_file:
-                tmp_file.write('\0' * 1024 * 1024)
+                tmp_file.write(b'\0' * 1024 * 1024)
                 tmp_file.flush()
                 remote_path = '/' + self.DEVICE_TEMP_DIR + '/test_push_multiple_slash_root'
                 self.device.shell(['rm', '-rf', remote_path])
@@ -1330,6 +1329,7 @@ class FileOperationsTest:
 
             for file_size in [8, 1024 * 1024]:
                 try:
+                    host_dir = tempfile.mkdtemp()
                     device_dir = posixpath.join(self.DEVICE_TEMP_DIR, 'push_dry_run')
                     device_file = posixpath.join(device_dir, 'file')
 
@@ -1337,7 +1337,6 @@ class FileOperationsTest:
                     self.device.shell(['mkdir', '-p', device_dir])
                     self.device.shell(['echo', 'foo', '>', device_file])
 
-                    host_dir = tempfile.mkdtemp()
                     host_file = posixpath.join(host_dir, 'file')
 
                     with open(host_file, "w") as f:
