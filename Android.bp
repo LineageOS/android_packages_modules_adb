@@ -471,6 +471,8 @@ cc_binary_host {
         targets: [
             "dist_files",
             "sdk",
+            "sdk-repo-platform-tools",
+            "sdk_repo",
             "win_sdk",
         ],
     },
