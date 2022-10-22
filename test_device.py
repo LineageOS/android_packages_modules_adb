@@ -39,26 +39,6 @@ from datetime import datetime
 
 import adb
 
-def requires_root(func):
-    def wrapper(self, *args):
-        if self.device.get_prop('ro.debuggable') != '1':
-            raise unittest.SkipTest('requires rootable build')
-
-        was_root = self.device.shell(['id', '-un'])[0].strip() == 'root'
-        if not was_root:
-            self.device.root()
-            self.device.wait()
-
-        try:
-            func(self, *args)
-        finally:
-            if not was_root:
-                self.device.unroot()
-                self.device.wait()
-
-    return wrapper
-
-
 def requires_non_root(func):
     def wrapper(self, *args):
         was_root = self.device.shell(['id', '-un'])[0].strip() == 'root'
@@ -679,14 +659,15 @@ class SystemPropertiesTest(DeviceTest):
     def test_get_prop(self):
         self.assertEqual(self.device.get_prop('init.svc.adbd'), 'running')
 
-    @requires_root
     def test_set_prop(self):
-        prop_name = 'foo.bar'
+        # debug.* prop does not require root privileges
+        prop_name = 'debug.foo'
         self.device.shell(['setprop', prop_name, '""'])
 
-        self.device.set_prop(prop_name, 'qux')
+        val = random.random()
+        self.device.set_prop(prop_name, str(val))
         self.assertEqual(
-            self.device.shell(['getprop', prop_name])[0].strip(), 'qux')
+            self.device.shell(['getprop', prop_name])[0].strip(), str(val))
 
 
 def compute_md5(string):
@@ -1575,7 +1556,6 @@ class SocketTest(DeviceTest):
 
 
 class FramebufferTest(DeviceTest):
-    @requires_root
     def test_framebuffer(self):
         """Test that we get something from the framebuffer service."""
         output = subprocess.check_output(self.device.adb_cmd + ["raw", "framebuffer:"])
