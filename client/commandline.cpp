@@ -1932,7 +1932,10 @@ int adb_commandline(int argc, const char** argv) {
 
         parse_push_pull_args(&argv[1], argc - 1, &srcs, &dst, &copy_attrs, &sync, &compression,
                              &dry_run);
-        if (srcs.empty() || !dst) error_exit("push requires an argument");
+        if (srcs.empty() || !dst) {
+            error_exit("push requires <source> and <destination> arguments");
+        }
+
         return do_sync_push(srcs, dst, sync, compression, dry_run) ? 0 : 1;
     } else if (!strcmp(argv[0], "pull")) {
         bool copy_attrs = false;
