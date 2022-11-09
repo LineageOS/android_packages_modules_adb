@@ -766,7 +766,6 @@ phony {
         debuggable: {
             required: [
                 "remount",
-                "set-verity-state",
             ],
         },
     },
