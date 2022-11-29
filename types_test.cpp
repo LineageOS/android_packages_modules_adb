@@ -47,6 +47,12 @@ TEST(IOVector, empty) {
     CHECK_EQ(0ULL, bc.coalesce().size());
 }
 
+TEST(IOVector, move_constructor) {
+    IOVector x;
+    IOVector y(std::move(x));
+    CHECK_EQ(x.coalesce().size(), y.coalesce().size());
+}
+
 TEST(IOVector, single_block) {
     // A single block.
     auto block = create_block('x', 100);
