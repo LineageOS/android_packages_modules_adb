@@ -24,12 +24,17 @@
 #include <android-base/stringprintf.h>
 #include <gtest/gtest.h>
 
-TEST(socket_spec, parse_tcp_socket_spec_failure) {
+// If the socket spec is incorrectly specified (i.e w/o a "tcp:" prefix),
+// check for the contents of the returned error string.
+TEST(socket_spec, parse_tcp_socket_spec_failure_error_check) {
     std::string hostname, error, serial;
     int port;
+
     // spec needs to be prefixed with "tcp:"
-    EXPECT_FALSE(parse_tcp_socket_spec("sneakernet:5037", &hostname, &port, &serial, &error));
+    const std::string spec("sneakernet:5037");
+    EXPECT_FALSE(parse_tcp_socket_spec(spec, &hostname, &port, &serial, &error));
     EXPECT_TRUE(error.find("sneakernet") != std::string::npos);
+    EXPECT_EQ(error, "specification is not tcp: " + spec);
 }
 
 TEST(socket_spec, parse_tcp_socket_spec_just_port_success) {
