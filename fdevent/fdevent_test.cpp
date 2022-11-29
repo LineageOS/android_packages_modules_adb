@@ -18,6 +18,11 @@
 
 #include <gtest/gtest.h>
 
+#ifdef ADB_LINUX
+#include <sys/syscall.h>
+#endif
+
+#include <unistd.h>
 #include <chrono>
 #include <limits>
 #include <memory>
@@ -198,15 +203,33 @@ TEST_F(FdeventTest, run_on_main_thread) {
     }
 }
 
-static std::function<void()> make_appender(std::vector<int>* vec, int value) {
-    return [vec, value]() {
+// Primary thread(initial invocation), secondary thread (subsequent
+// invocations).
+static std::function<void()> make_appender(std::vector<int>* vec, int invocation_id) {
+#ifdef ADB_LINUX
+    // Validate reentrancy
+    if (invocation_id == 0) {  // Primary thread
+        CHECK_EQ(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
+    } else {  // Secondary thread
+        CHECK_NE(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
+    }
+#endif
+    return [vec, invocation_id]() {
         check_main_thread();
-        if (value == 100) {
+        if (invocation_id == 100) {
+#ifdef ADB_LINUX
+            CHECK_NE(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
+#endif
             return;
         }
 
-        vec->push_back(value);
-        fdevent_run_on_main_thread(make_appender(vec, value + 1));
+#ifdef ADB_LINUX
+        CHECK_NE(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
+#endif
+        vec->push_back(invocation_id);
+        fdevent_run_on_main_thread(make_appender(vec, invocation_id + 1));
+
+        CHECK_LT(invocation_id, 100);
     };
 }
 
@@ -214,9 +237,11 @@ TEST_F(FdeventTest, run_on_main_thread_reentrant) {
     std::vector<int> vec;
 
     PrepareThread();
+#ifdef ADB_LINUX
+    CHECK_EQ(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
+#endif
     fdevent_run_on_main_thread(make_appender(&vec, 0));
     TerminateThread();
-
     ASSERT_EQ(100u, vec.size());
     for (int i = 0; i < 100; ++i) {
         ASSERT_EQ(i, vec[i]);
