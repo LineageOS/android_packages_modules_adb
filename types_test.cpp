@@ -49,8 +49,9 @@ TEST(IOVector, empty) {
 
 TEST(IOVector, move_constructor) {
     IOVector x;
+    size_t xsize = x.coalesce().size();
     IOVector y(std::move(x));
-    CHECK_EQ(x.coalesce().size(), y.coalesce().size());
+    CHECK_EQ(xsize, y.coalesce().size());
 }
 
 TEST(IOVector, single_block) {
