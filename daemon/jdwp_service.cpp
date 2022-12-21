@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#if !ADB_HOST
-
 #if !defined(__ANDROID_RECOVERY__)
 #define TRACE_TAG JDWP
 
@@ -534,4 +532,3 @@ int init_jdwp() {
 }
 
 #endif /* defined(__ANDROID_RECOVERY__) */
-#endif /* !ADB_HOST */
