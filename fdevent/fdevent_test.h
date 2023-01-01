@@ -30,13 +30,13 @@ static void WaitForFdeventLoop() {
     // Sleep for a bit to make sure that network events have propagated.
     std::this_thread::sleep_for(100ms);
 
-    // fdevent_run_on_main_thread has a guaranteed ordering, and is guaranteed to happen after
+    // fdevent_run_on_looper has a guaranteed ordering, and is guaranteed to happen after
     // socket events, so as soon as our function is called, we know that we've processed all
     // previous events.
     std::mutex mutex;
     std::condition_variable cv;
     std::unique_lock<std::mutex> lock(mutex);
-    fdevent_run_on_main_thread([&]() {
+    fdevent_run_on_looper([&]() {
         mutex.lock();
         mutex.unlock();
         cv.notify_one();

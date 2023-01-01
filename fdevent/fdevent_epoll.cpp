@@ -105,7 +105,7 @@ void fdevent_context_epoll::Set(fdevent* fde, unsigned events) {
 }
 
 void fdevent_context_epoll::Loop() {
-    main_thread_id_ = android::base::GetThreadId();
+    looper_thread_id_ = android::base::GetThreadId();
 
     std::vector<fdevent_event> fde_events;
     std::vector<epoll_event> epoll_events;
@@ -181,7 +181,7 @@ void fdevent_context_epoll::Loop() {
         fde_events.clear();
     }
 
-    main_thread_id_.reset();
+    looper_thread_id_.reset();
 }
 
 size_t fdevent_context_epoll::InstalledCount() {
