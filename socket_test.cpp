@@ -110,7 +110,7 @@ struct CloseWithPacketArg {
 };
 
 static void CreateCloser(CloseWithPacketArg* arg) {
-    fdevent_run_on_main_thread([arg]() {
+    fdevent_run_on_looper([arg]() {
         asocket* s = create_local_socket(std::move(arg->socket_fd));
         ASSERT_TRUE(s != nullptr);
         arg->bytes_written = 0;
@@ -304,7 +304,7 @@ TEST_F(LocalSocketTest, close_socket_in_CLOSE_WAIT_state) {
 
     PrepareThread();
 
-    fdevent_run_on_main_thread([accept_fd]() {
+    fdevent_run_on_looper([accept_fd]() {
         asocket* s = create_local_socket(unique_fd(accept_fd));
         ASSERT_TRUE(s != nullptr);
     });
