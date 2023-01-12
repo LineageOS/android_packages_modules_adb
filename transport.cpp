@@ -152,12 +152,12 @@ class ReconnectHandler {
 };
 
 void ReconnectHandler::Start() {
-    check_main_thread();
+    fdevent_check_looper();
     handler_thread_ = std::thread(&ReconnectHandler::Run, this);
 }
 
 void ReconnectHandler::Stop() {
-    check_main_thread();
+    fdevent_check_looper();
     {
         std::lock_guard<std::mutex> lock(reconnect_mutex_);
         running_ = false;
@@ -175,7 +175,7 @@ void ReconnectHandler::Stop() {
 }
 
 void ReconnectHandler::TrackTransport(atransport* transport) {
-    check_main_thread();
+    fdevent_check_looper();
     {
         std::lock_guard<std::mutex> lock(reconnect_mutex_);
         if (!running_) return;
@@ -924,7 +924,7 @@ static void remove_transport(atransport* transport) {
 }
 
 static void transport_destroy(atransport* t) {
-    check_main_thread();
+    fdevent_check_looper();
     CHECK(t != nullptr);
 
     std::lock_guard<std::recursive_mutex> lock(transport_lock);
@@ -1162,7 +1162,7 @@ ConnectionState atransport::GetConnectionState() const {
 }
 
 void atransport::SetConnectionState(ConnectionState state) {
-    check_main_thread();
+    fdevent_check_looper();
     connection_state_ = state;
     update_transports();
 }
@@ -1170,7 +1170,7 @@ void atransport::SetConnectionState(ConnectionState state) {
 #if ADB_HOST
 bool atransport::Attach(std::string* error) {
     D("%s: attach", serial.c_str());
-    check_main_thread();
+    fdevent_check_looper();
 
     if (!should_use_libusb()) {
         *error = "attach/detach only implemented for libusb backend";
@@ -1197,7 +1197,7 @@ bool atransport::Attach(std::string* error) {
 
 bool atransport::Detach(std::string* error) {
     D("%s: detach", serial.c_str());
-    check_main_thread();
+    fdevent_check_looper();
 
     if (!should_use_libusb()) {
         *error = "attach/detach only implemented for libusb backend";
@@ -1237,16 +1237,16 @@ bool atransport::HandleRead(std::unique_ptr<apacket> p) {
     VLOG(TRANSPORT) << dump_packet(serial.c_str(), "from remote", p.get());
     apacket* packet = p.release();
 
-    // This needs to run on the main thread since the associated fdevent
+    // This needs to run on the looper thread since the associated fdevent
     // message pump exists in that context.
-    fdevent_run_on_main_thread([packet, this]() { handle_packet(packet, this); });
+    fdevent_run_on_looper([packet, this]() { handle_packet(packet, this); });
 
     return true;
 }
 
 void atransport::HandleError(const std::string& error) {
     LOG(INFO) << serial_name() << ": connection terminated: " << error;
-    fdevent_run_on_main_thread([this]() {
+    fdevent_run_on_looper([this]() {
         handle_offline(this);
         transport_destroy(this);
     });
@@ -1642,7 +1642,7 @@ void unregister_usb_transport(usb_handle* usb) {
 //   - adb reverse --remove tcp:<device_port> : responds OKAY
 //   - adb reverse --remove-all : responds OKAY
 void atransport::UpdateReverseConfig(std::string_view service_addr) {
-    check_main_thread();
+    fdevent_check_looper();
     if (!android::base::ConsumePrefix(&service_addr, "reverse:")) {
         return;
     }
@@ -1682,7 +1682,7 @@ void atransport::UpdateReverseConfig(std::string_view service_addr) {
 
 // Is this an authorized :connect request?
 bool atransport::IsReverseConfigured(const std::string& local_addr) {
-    check_main_thread();
+    fdevent_check_looper();
     for (const auto& [remote, local] : reverse_forwards_) {
         if (local == local_addr) {
             return true;

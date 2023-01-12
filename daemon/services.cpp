@@ -132,7 +132,7 @@ static void spin_service(unique_fd fd) {
         return;
     }
 
-    fdevent_run_on_main_thread([fd = pipe_read.release()]() {
+    fdevent_run_on_looper([fd = pipe_read.release()]() {
         fdevent* fde = fdevent_create(
                 fd, [](int, unsigned, void*) {}, nullptr);
         fdevent_add(fde, FDE_READ);
