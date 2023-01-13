@@ -186,7 +186,7 @@ TEST_F(weak_ptr_test, smoke) {
     bool destroyed = false;
     std::optional<weak_ptr<Destructor>> p;
 
-    fdevent_run_on_main_thread([&p, &destructor, &destroyed]() {
+    fdevent_run_on_looper([&p, &destructor, &destroyed]() {
         destructor = new Destructor(&destroyed);
         p = destructor->weak();
         ASSERT_TRUE(p->get());
@@ -205,7 +205,7 @@ TEST_F(weak_ptr_test, smoke) {
     WaitForFdeventLoop();
 
     ASSERT_TRUE(destroyed);
-    fdevent_run_on_main_thread([&p]() {
+    fdevent_run_on_looper([&p]() {
         ASSERT_FALSE(p->get());
         p.reset();
     });

@@ -18,10 +18,6 @@
 
 #include <gtest/gtest.h>
 
-#ifdef ADB_LINUX
-#include <sys/syscall.h>
-#endif
-
 #include <unistd.h>
 #include <chrono>
 #include <limits>
@@ -140,7 +136,7 @@ TEST_F(FdeventTest, smoke) {
         PrepareThread();
 
         std::vector<std::unique_ptr<FdHandler>> fd_handlers;
-        fdevent_run_on_main_thread([&thread_arg, &fd_handlers, use_new_callback]() {
+        fdevent_run_on_looper([&thread_arg, &fd_handlers, use_new_callback]() {
             std::vector<int> read_fds;
             std::vector<int> write_fds;
 
@@ -168,7 +164,7 @@ TEST_F(FdeventTest, smoke) {
             ASSERT_EQ(read_buffer, write_buffer);
         }
 
-        fdevent_run_on_main_thread([&fd_handlers]() { fd_handlers.clear(); });
+        fdevent_run_on_looper([&fd_handlers]() { fd_handlers.clear(); });
         WaitForFdeventLoop();
 
         TerminateThread();
@@ -177,20 +173,20 @@ TEST_F(FdeventTest, smoke) {
     }
 }
 
-TEST_F(FdeventTest, run_on_main_thread) {
+TEST_F(FdeventTest, run_on_looper_thread) {
     std::vector<int> vec;
 
     PrepareThread();
 
-    // Block the main thread for a long time while we queue our callbacks.
-    fdevent_run_on_main_thread([]() {
-        check_main_thread();
+    // Block the looper thread for a long time while we queue our callbacks.
+    fdevent_run_on_looper([]() {
+        fdevent_check_looper();
         std::this_thread::sleep_for(std::chrono::seconds(1));
     });
 
     for (int i = 0; i < 1000000; ++i) {
-        fdevent_run_on_main_thread([i, &vec]() {
-            check_main_thread();
+        fdevent_run_on_looper([i, &vec]() {
+            fdevent_check_looper();
             vec.push_back(i);
         });
     }
@@ -203,44 +199,29 @@ TEST_F(FdeventTest, run_on_main_thread) {
     }
 }
 
-// Primary thread(initial invocation), secondary thread (subsequent
-// invocations).
 static std::function<void()> make_appender(std::vector<int>* vec, int invocation_id) {
-#ifdef ADB_LINUX
     // Validate reentrancy
-    if (invocation_id == 0) {  // Primary thread
-        CHECK_EQ(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
-    } else {  // Secondary thread
-        CHECK_NE(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
+    if (invocation_id > 0) {
+        fdevent_check_looper();
     }
-#endif
     return [vec, invocation_id]() {
-        check_main_thread();
+        fdevent_check_looper();
         if (invocation_id == 100) {
-#ifdef ADB_LINUX
-            CHECK_NE(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
-#endif
             return;
         }
 
-#ifdef ADB_LINUX
-        CHECK_NE(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
-#endif
         vec->push_back(invocation_id);
-        fdevent_run_on_main_thread(make_appender(vec, invocation_id + 1));
+        fdevent_run_on_looper(make_appender(vec, invocation_id + 1));
 
         CHECK_LT(invocation_id, 100);
     };
 }
 
-TEST_F(FdeventTest, run_on_main_thread_reentrant) {
+TEST_F(FdeventTest, run_on_looper_thread_reentrant) {
     std::vector<int> vec;
 
     PrepareThread();
-#ifdef ADB_LINUX
-    CHECK_EQ(static_cast<long int>(syscall(SYS_gettid)), static_cast<long int>(getpid()));
-#endif
-    fdevent_run_on_main_thread(make_appender(&vec, 0));
+    fdevent_run_on_looper(make_appender(&vec, 0));
     TerminateThread();
     ASSERT_EQ(100u, vec.size());
     for (int i = 0; i < 100; ++i) {
@@ -267,7 +248,7 @@ TEST_F(FdeventTest, timeout) {
     int fds[2];
     ASSERT_EQ(0, adb_socketpair(fds));
     static constexpr auto delta = 100ms;
-    fdevent_run_on_main_thread([&]() {
+    fdevent_run_on_looper([&]() {
         test.fde = fdevent_create(fds[0], [](fdevent* fde, unsigned events, void* arg) {
             auto test = static_cast<TimeoutTest*>(arg);
             auto now = std::chrono::steady_clock::now();
