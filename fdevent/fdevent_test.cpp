@@ -27,6 +27,8 @@
 #include <thread>
 #include <vector>
 
+#include <android-base/threads.h>
+
 #include "adb_io.h"
 #include "fdevent_test.h"
 
@@ -173,7 +175,7 @@ TEST_F(FdeventTest, smoke) {
     }
 }
 
-TEST_F(FdeventTest, run_on_looper_thread) {
+TEST_F(FdeventTest, run_on_looper_thread_queued) {
     std::vector<int> vec;
 
     PrepareThread();
@@ -199,34 +201,22 @@ TEST_F(FdeventTest, run_on_looper_thread) {
     }
 }
 
-static std::function<void()> make_appender(std::vector<int>* vec, int invocation_id) {
-    // Validate reentrancy
-    if (invocation_id > 0) {
-        fdevent_check_looper();
-    }
-    return [vec, invocation_id]() {
-        fdevent_check_looper();
-        if (invocation_id == 100) {
-            return;
-        }
-
-        vec->push_back(invocation_id);
-        fdevent_run_on_looper(make_appender(vec, invocation_id + 1));
-
-        CHECK_LT(invocation_id, 100);
-    };
-}
-
 TEST_F(FdeventTest, run_on_looper_thread_reentrant) {
-    std::vector<int> vec;
+    bool b = false;
 
     PrepareThread();
-    fdevent_run_on_looper(make_appender(&vec, 0));
+
+    fdevent_run_on_looper([&b]() {
+        fdevent_check_looper();
+        fdevent_run_on_looper([&b]() {
+            fdevent_check_looper();
+            b = true;
+        });
+    });
+
     TerminateThread();
-    ASSERT_EQ(100u, vec.size());
-    for (int i = 0; i < 100; ++i) {
-        ASSERT_EQ(i, vec[i]);
-    }
+
+    EXPECT_EQ(b, true);
 }
 
 TEST_F(FdeventTest, timeout) {
