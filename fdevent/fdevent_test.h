@@ -63,7 +63,6 @@ class FdeventTest : public ::testing::Test {
         ASSERT_EQ(0u, fdevent_installed_count());
     }
 
-    // Register a placeholder socket used to wake up the fdevent loop to tell it to die.
     void PrepareThread() {
         thread_ = std::thread([]() { fdevent_loop(); });
         WaitForFdeventLoop();
