@@ -1492,6 +1492,21 @@ void close_usb_devices(bool reset) {
 }
 #endif
 
+bool validate_transport_list(const std::list<atransport*>& list, const std::string& serial,
+                             atransport* t, int* error) {
+    for (const auto& transport : list) {
+        if (serial == transport->serial) {
+            const std::string list_name(&list == &pending_list ? "pending" : "transport");
+            VLOG(TRANSPORT) << "socket transport " << transport->serial << " is already in the "
+                            << list_name << " list and fails to register";
+            delete t;
+            if (error) *error = EALREADY;
+            return false;
+        }
+    }
+    return true;
+}
+
 bool register_socket_transport(unique_fd s, std::string serial, int port, int local,
                                atransport::ReconnectCallback reconnect, bool use_tls, int* error) {
     atransport* t = new atransport(std::move(reconnect), kCsOffline);
@@ -1505,24 +1520,12 @@ bool register_socket_transport(unique_fd s, std::string serial, int port, int lo
     }
 
     std::unique_lock<std::recursive_mutex> lock(transport_lock);
-    for (const auto& transport : pending_list) {
-        if (serial == transport->serial) {
-            VLOG(TRANSPORT) << "socket transport " << transport->serial
-                            << " is already in pending_list and fails to register";
-            delete t;
-            if (error) *error = EALREADY;
-            return false;
-        }
+    if (!validate_transport_list(pending_list, serial, t, error)) {
+        return false;
     }
 
-    for (const auto& transport : transport_list) {
-        if (serial == transport->serial) {
-            VLOG(TRANSPORT) << "socket transport " << transport->serial
-                            << " is already in transport_list and fails to register";
-            delete t;
-            if (error) *error = EALREADY;
-            return false;
-        }
+    if (!validate_transport_list(transport_list, serial, t, error)) {
+        return false;
     }
 
     t->serial = std::move(serial);
