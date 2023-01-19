@@ -815,6 +815,14 @@ cc_binary {
     ],
 }
 
+ADBD_TEST_LIBS = [
+    "libadbd",
+    "libadbd_auth",
+    "libbase",
+    "libcrypto_utils",
+    "libusb",
+]
+
 cc_test {
     name: "adbd_test",
 
@@ -825,6 +833,7 @@ cc_test {
         "daemon/services.cpp",
         "daemon/shell_service.cpp",
         "daemon/shell_service_test.cpp",
+        "daemon/test_utils.cpp",
         "shell_service_protocol.cpp",
         "shell_service_protocol_test.cpp",
         "mdns_test.cpp",
@@ -844,13 +853,16 @@ cc_test {
         "liblog",
     ],
 
-    static_libs: [
-        "libadbd",
-        "libadbd_auth",
-        "libbase",
-        "libcrypto_utils",
-        "libusb",
-    ],
+    static_libs: ADBD_TEST_LIBS,
+
+    // Shared lib versions of static libs can potentially come from
+    // libadbd_binary_dependencies (e.g. libbase as a shared_lib, depending on
+    // library_linking_strategy), which will cause both shared/static versions of
+    // the same library to be in the link action.
+    //
+    // adbd_test uses the static version of these libraries above, so exclude them here.
+    exclude_shared_libs: ADBD_TEST_LIBS,
+
     test_suites: ["general-tests", "mts-adbd"],
     require_root: true,
 }
