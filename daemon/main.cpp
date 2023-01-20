@@ -57,6 +57,7 @@
 #include "socket_spec.h"
 #include "transport.h"
 
+#include "daemon/jdwp_service.h"
 #include "daemon/mdns.h"
 #include "daemon/watchdog.h"
 
