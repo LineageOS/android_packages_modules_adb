@@ -819,7 +819,6 @@ ADBD_TEST_LIBS = [
     "libadbd",
     "libadbd_auth",
     "libbase",
-    "libcrypto_utils",
     "libusb",
 ]
 
