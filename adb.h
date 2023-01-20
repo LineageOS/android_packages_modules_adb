@@ -172,14 +172,6 @@ asocket* daemon_service_to_socket(std::string_view name, atransport* transport);
 unique_fd execute_abb_command(std::string_view command);
 #endif
 
-#if !ADB_HOST
-int init_jdwp(void);
-asocket* create_jdwp_service_socket();
-asocket* create_jdwp_tracker_service_socket();
-asocket* create_app_tracker_service_socket();
-unique_fd create_jdwp_connection_fd(int jdwp_pid);
-#endif
-
 bool handle_forward_request(const char* service, atransport* transport, int reply_fd);
 bool handle_forward_request(const char* service,
                             std::function<atransport*(std::string* error)> transport_acquirer,
