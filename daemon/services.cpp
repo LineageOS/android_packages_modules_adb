@@ -54,6 +54,7 @@
 
 #include "daemon/file_sync_service.h"
 #include "daemon/framebuffer_service.h"
+#include "daemon/jdwp_service.h"
 #include "daemon/logging.h"
 #include "daemon/restart_service.h"
 #include "daemon/shell_service.h"
