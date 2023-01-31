@@ -77,8 +77,7 @@ _adb() {
             COMPREPLY=( $(compgen -W "$OPTIONS $COMMAND" -- "$cur") )
             ;;
         OPT_SERIAL_ARG)
-            local devices=$(command adb devices 2> /dev/null | grep -v "List of devices" | awk '{ print $1 }')
-            COMPREPLY=( $(compgen -W "${devices}" -- ${cur}) )
+            _adb_devices
             ;;
         COMMAND)
             if [[ $i -eq $COMP_CWORD ]]; then
@@ -86,6 +85,9 @@ _adb() {
             else
                 i=$((i+1))
                 case "${cur}" in
+                    disconnect)
+                        _adb_devices
+                        ;;
                     install)
                         _adb_cmd_install "$serial" $i
                         ;;
@@ -116,6 +118,12 @@ _adb() {
     esac
 
     return 0
+}
+
+_adb_devices() {
+    local devices=$(command adb devices 2> /dev/null | grep -v "List of devices" | awk '{ print $1 }')
+    COMPREPLY=( $(compgen -W "${devices}" -- ${cur}) )
+    return
 }
 
 _adb_cmd_install() {
