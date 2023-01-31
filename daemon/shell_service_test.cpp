@@ -29,7 +29,7 @@
 #include "adb_io.h"
 #include "shell_protocol.h"
 #include "sysdeps.h"
-#include "test_utils.h"
+#include "test_utils/test_utils.h"
 
 using namespace test_utils;
 
