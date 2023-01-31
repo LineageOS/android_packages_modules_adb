@@ -33,6 +33,7 @@
 #include "socket.h"
 #include "sysdeps.h"
 #include "sysdeps/chrono.h"
+#include "test_utils/test_utils.h"
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -283,22 +284,11 @@ static void ClientThreadFunc(const int assigned_port) {
 TEST_F(LocalSocketTest, close_socket_in_CLOSE_WAIT_state) {
     std::string error;
     // Allow the system to allocate an available port.
-    const int listen_fd = network_inaddr_any_server(0, SOCK_STREAM, &error);
-    ASSERT_GE(listen_fd, 0);
-
-    sockaddr_storage ss;
-    socklen_t ss_size = sizeof(ss);
-    ASSERT_EQ(0, adb_getsockname(listen_fd, reinterpret_cast<sockaddr*>(&ss), &ss_size));
-    int assigned_port;
-    if (ss.ss_family == AF_INET) {
-        assigned_port = ntohs(reinterpret_cast<sockaddr_in*>(&ss)->sin_port);
-    } else {
-        assigned_port = ntohs(reinterpret_cast<sockaddr_in6*>(&ss)->sin6_port);
-    }
-    ASSERT_GE(assigned_port, 0);
+    unique_fd listen_fd;
+    const int assigned_port(test_utils::GetUnassignedPort(listen_fd));
 
     std::thread client_thread(ClientThreadFunc, assigned_port);
-    const int accept_fd = adb_socket_accept(listen_fd, nullptr, nullptr);
+    const int accept_fd = adb_socket_accept(listen_fd.get(), nullptr, nullptr);
 
     ASSERT_GE(accept_fd, 0);
 
