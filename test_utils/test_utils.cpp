@@ -19,6 +19,7 @@
 #include <android-base/strings.h>
 #include <android-base/test_utils.h>
 
+#include <cutils/sockets.h>
 #include <gtest/gtest.h>
 
 #include "shell_protocol.h"
@@ -43,19 +44,19 @@ std::string ReadRaw(android::base::borrowed_fd fd) {
 // Reads shell protocol data from |fd| until it closes or errors. Fills
 // |stdout| and |stderr| with their respective data, and returns the exit code
 // read from the protocol or -1 if an exit code packet was not received.
-int ReadShellProtocol(android::base::borrowed_fd fd, std::string* stdout, std::string* stderr) {
+int ReadShellProtocol(android::base::borrowed_fd fd, std::string* std_out, std::string* std_err) {
     int exit_code = -1;
-    stdout->clear();
-    stderr->clear();
+    std_out->clear();
+    std_err->clear();
 
     auto protocol = std::make_unique<ShellProtocol>(fd.get());
     while (protocol->Read()) {
         switch (protocol->id()) {
             case ShellProtocol::kIdStdout:
-                stdout->append(protocol->data(), protocol->data_length());
+                std_out->append(protocol->data(), protocol->data_length());
                 break;
             case ShellProtocol::kIdStderr:
-                stderr->append(protocol->data(), protocol->data_length());
+                std_err->append(protocol->data(), protocol->data_length());
                 break;
             case ShellProtocol::kIdExit:
                 EXPECT_EQ(-1, exit_code) << "Multiple exit packets received";
@@ -94,6 +95,22 @@ bool ExpectLinesEqual(const std::string& output, const std::vector<std::string>&
     }
     EXPECT_EQ(i, output_lines.size()) << "Found unmatched output lines";
     return true;
+}
+
+// Relies on the device to allocate an available port, and
+// returns it to the caller.
+// Existing client (LocalSocketTest) of this interface is
+// implemented only on Linux, hence using cutils.
+int GetUnassignedPort(android::base::unique_fd& fd) {
+    android::base::unique_fd ufd;
+    ufd.reset(socket_inaddr_any_server(0, SOCK_STREAM));
+    EXPECT_NE(static_cast<cutils_socket_t>(ufd.get()), INVALID_SOCKET);
+
+    const int port = socket_get_local_port(ufd.get());
+    EXPECT_GT(port, 0);
+
+    fd.reset(ufd.release());
+    return port;
 }
 
 }  // namespace test_utils
