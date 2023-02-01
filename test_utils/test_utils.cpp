@@ -98,18 +98,16 @@ bool ExpectLinesEqual(const std::string& output, const std::vector<std::string>&
 }
 
 // Relies on the device to allocate an available port, and
-// returns it to the caller.
+// returns it to the caller. Also returns the associated fd.
 // Existing client (LocalSocketTest) of this interface is
 // implemented only on Linux, hence using cutils.
 int GetUnassignedPort(android::base::unique_fd& fd) {
-    android::base::unique_fd ufd;
-    ufd.reset(socket_inaddr_any_server(0, SOCK_STREAM));
-    EXPECT_NE(static_cast<cutils_socket_t>(ufd.get()), INVALID_SOCKET);
+    fd.reset(socket_inaddr_any_server(0, SOCK_STREAM));
+    EXPECT_NE(static_cast<cutils_socket_t>(fd.get()), INVALID_SOCKET);
 
-    const int port = socket_get_local_port(ufd.get());
+    const int port = socket_get_local_port(fd.get());
     EXPECT_GT(port, 0);
 
-    fd.reset(ufd.release());
     return port;
 }
 
