@@ -37,6 +37,7 @@ int ReadShellProtocol(android::base::borrowed_fd fd, std::string* std_out, std::
 bool ExpectLinesEqual(const std::string& output, const std::vector<std::string>& lines);
 
 // Allows the device to allocate a port, which is returned to the caller.
+// Also returns the associated fd.
 int GetUnassignedPort(android::base::unique_fd& fd);
 
 }  // namespace test_utils
