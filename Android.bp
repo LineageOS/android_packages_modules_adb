@@ -831,6 +831,8 @@ cc_test {
 
     recovery_available: false,
     srcs: libadb_test_srcs + [
+        "daemon/restart_service.cpp",
+        "daemon/restart_service_test.cpp",
         "daemon/services.cpp",
         "daemon/shell_service.cpp",
         "daemon/shell_service_test.cpp",
