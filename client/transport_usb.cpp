@@ -199,8 +199,13 @@ void init_usb_transport(atransport* t, usb_handle* h) {
     t->SetUsbHandle(h);
 }
 
-int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
-    return (usb_class == ADB_CLASS && usb_subclass == ADB_SUBCLASS && usb_protocol == ADB_PROTOCOL);
+bool is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
+    // ADB over gadget mode and DbC use the same ADB protocol.
+    if (usb_protocol == ADB_PROTOCOL && ((usb_class == ADB_CLASS && usb_subclass == ADB_SUBCLASS) ||
+            (usb_class == ADB_DBC_CLASS && usb_subclass == ADB_DBC_SUBCLASS)))
+        return true;
+    else
+        return false;
 }
 
 bool should_use_libusb() {
