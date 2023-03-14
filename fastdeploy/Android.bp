@@ -85,6 +85,7 @@ java_test_host {
         "deployagent/test/com/android/fastdeploy/FastDeployTest.java",
     ],
     data: [
+        ":FastDeployTests",
         "testdata/helloworld5.apk",
         "testdata/helloworld7.apk",
     ],
