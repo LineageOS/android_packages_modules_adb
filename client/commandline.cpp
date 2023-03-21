@@ -1235,7 +1235,9 @@ static int backup(int argc, const char** argv) {
 static int restore(int argc, const char** argv) {
     fprintf(stdout, "WARNING: adb restore is deprecated and may be removed in a future release\n");
 
-    if (argc != 2) error_exit("restore requires an argument");
+    if (argc < 2) {
+        error_exit("usage: adb restore FILENAME [ARG]...");
+    }
 
     const char* filename = argv[1];
     unique_fd tarFd(adb_open(filename, O_RDONLY));
@@ -1244,8 +1246,17 @@ static int restore(int argc, const char** argv) {
         return -1;
     }
 
+    std::string cmd = "restore:";
+    argc -= 2;
+    argv += 2;
+    while (argc-- > 0) {
+        cmd += " " + escape_arg(*argv++);
+    }
+
+    D("restore. filename=%s cmd=%s", filename, cmd.c_str());
+
     std::string error;
-    unique_fd fd(adb_connect("restore:", &error));
+    unique_fd fd(adb_connect(cmd, &error));
     if (fd < 0) {
         fprintf(stderr, "adb: unable to connect for restore: %s\n", error.c_str());
         return -1;
