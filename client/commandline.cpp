@@ -1558,6 +1558,7 @@ int adb_commandline(int argc, const char** argv) {
             if (isdigit(argv[0][2])) {
                 id = argv[0] + 2;
             } else {
+                if (argc < 2 || argv[0][2] != '\0') error_exit("-t requires an argument");
                 id = argv[1];
                 --argc;
                 ++argv;
