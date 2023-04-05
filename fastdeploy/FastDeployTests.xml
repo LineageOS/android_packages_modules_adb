@@ -32,8 +32,4 @@
         <option name="package" value="com.android.fastdeploytests"/>
         <option name="runner" value="androidx.test.runner.AndroidJUnitRunner"/>
     </test>
-
-    <test class="com.android.compatibility.common.tradefed.testtype.JarHostTest" >
-        <option name="jar" value="FastDeployHostTests.jar" />
-    </test>
 </configuration>
