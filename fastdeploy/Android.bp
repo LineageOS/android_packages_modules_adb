@@ -77,6 +77,12 @@ android_test {
     optimize: {
         enabled: false,
     },
+
+    test_config: "FastDeployTests.xml",
+
+    test_suites: [
+        "general-tests",
+    ],
 }
 
 java_test_host {
@@ -85,7 +91,6 @@ java_test_host {
         "deployagent/test/com/android/fastdeploy/FastDeployTest.java",
     ],
     data: [
-        ":FastDeployTests",
         "testdata/helloworld5.apk",
         "testdata/helloworld7.apk",
         "testdata/sample.apk",
@@ -99,4 +104,5 @@ java_test_host {
     test_suites: [
         "general-tests",
     ],
+    test_config: "FastDeployHostDrivenTests.xml",
 }
