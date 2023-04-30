@@ -46,7 +46,7 @@ using ::android::base::WriteStringToFile;
 ADBRootService::ADBRootService() : enabled_(false) {
     std::string buf;
     if (ReadFileToString(kStoragePath + kEnabled, &buf)) {
-        enabled_ = std::stoi(Trim(buf));
+        enabled_ = Trim(buf) == "1";
     }
 }
 
