@@ -24,9 +24,10 @@
 #include <chrono>
 #include <deque>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <optional>
-#include <unordered_map>
+#include <set>
 #include <variant>
 
 #include <android-base/thread_annotations.h>
@@ -125,12 +126,14 @@ struct fdevent_context {
     std::optional<uint64_t> looper_thread_id_ = std::nullopt;
     std::atomic<bool> terminate_loop_ = false;
 
-    std::unordered_map<int, fdevent> installed_fdevents_;
+    std::map<int, fdevent> installed_fdevents_;
 
   private:
     uint64_t fdevent_id_ = 0;
     std::mutex run_queue_mutex_;
     std::deque<std::function<void()>> run_queue_ GUARDED_BY(run_queue_mutex_);
+
+    std::set<fdevent*> fdevent_set_;
 };
 
 // Backwards compatibility shims that forward to the global fdevent_context.
