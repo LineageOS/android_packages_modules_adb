@@ -83,6 +83,7 @@ fdevent* fdevent_context::Create(unique_fd fd, std::variant<fd_func, fd_func2> f
         LOG(ERROR) << "failed to set non-blocking mode for fd " << fde->fd.get();
     }
 
+    this->fdevent_set_.insert(fde);
     this->Register(fde);
     return fde;
 }
@@ -99,6 +100,8 @@ unique_fd fdevent_context::Destroy(fdevent* fde) {
     unique_fd fd = std::move(fde->fd);
 
     auto erased = this->installed_fdevents_.erase(fd.get());
+    CHECK_EQ(1UL, erased);
+    erased = this->fdevent_set_.erase(fde);
     CHECK_EQ(1UL, erased);
 
     return fd;
@@ -150,7 +153,12 @@ std::optional<std::chrono::milliseconds> fdevent_context::CalculatePollDuration(
 
 void fdevent_context::HandleEvents(const std::vector<fdevent_event>& events) {
     for (const auto& event : events) {
-        invoke_fde(event.fde, event.events);
+        // Verify the fde is still installed before invoking it.  It could have been unregistered
+        // and destroyed inside an earlier event handler.
+        if (this->fdevent_set_.find(event.fde) != this->fdevent_set_.end()) {
+            invoke_fde(event.fde, event.events);
+            break;
+        }
     }
     FlushRunQueue();
 }
