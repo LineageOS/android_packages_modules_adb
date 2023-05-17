@@ -776,6 +776,10 @@ static void ReportServerStartupFailure(pid_t pid) {
     while (static_cast<size_t>(i) < lines.size()) fprintf(stderr, "%s\n", lines[i++].c_str());
 }
 
+bool is_one_device_mandatory() {
+    return access("/etc/adb/one_device_required", F_OK) == 0;
+}
+
 int launch_server(const std::string& socket_spec, const char* one_device) {
 #if defined(_WIN32)
     /* we need to start the server in the background                    */
@@ -1039,7 +1043,7 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
         if (one_device) {
             child_argv.push_back("--one-device");
             child_argv.push_back(one_device);
-        } else if (access("/etc/adb/one_device_required", F_OK) == 0) {
+        } else if (is_one_device_mandatory()) {
             fprintf(stderr,
                     "adb: cannot start server: --one-device option is required for this system in "
                     "order to start adb.\n");
