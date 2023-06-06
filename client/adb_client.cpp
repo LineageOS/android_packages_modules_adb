@@ -262,7 +262,14 @@ static bool __adb_check_server_version(std::string* error) {
     } else if (fd == -2) {
         fprintf(stderr, "* daemon not running; starting now at %s\n", __adb_server_socket_spec);
     start_server:
-        if (launch_server(__adb_server_socket_spec, __adb_client_one_device)) {
+        // On a "one_device_required" system, the server will not start without the "one_device"
+        // parameter. If "--one_device" was not provided (__adb_client_one_device), we attempt
+        // to find the value from the "-s" parameter (__adb_serial).
+        const char* one_device = __adb_client_one_device;
+        if (!one_device && __adb_serial && is_one_device_mandatory()) {
+            one_device = __adb_serial;
+        }
+        if (launch_server(__adb_server_socket_spec, one_device)) {
             fprintf(stderr, "* failed to start daemon\n");
             // launch_server() has already printed detailed error info, so just
             // return a generic error string about the overall adb_connect()
