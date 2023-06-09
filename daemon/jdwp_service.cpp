@@ -459,12 +459,16 @@ static int jdwp_tracker_enqueue(asocket* s, apacket::payload_type) {
 }
 
 static asocket* create_process_tracker_service_socket(TrackerKind kind) {
-    auto t = std::make_unique<JdwpTracker>(kind, true);
+    std::unique_ptr<JdwpTracker> t = std::make_unique<JdwpTracker>(kind, true);
     if (!t) {
         LOG(FATAL) << "failed to allocate JdwpTracker";
     }
 
-    memset(t.get(), 0, sizeof(asocket));
+    /* Object layout (with an inheritance hierarchy) varies across arch (e.g
+     * armv7a/Android TV vs aarch64), so no assumptions can be made about
+     * accessing fields based on offsets (e.g memset(t.get(), 0, sizeof(asocket))
+     * might clobber an unintended memory location).
+     */
 
     install_local_socket(t.get());
     D("LS(%d): created new jdwp tracker service", t->id);
