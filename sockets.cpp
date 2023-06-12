@@ -337,7 +337,7 @@ static void local_socket_destroy(asocket* s) {
 
     if (exit_on_close) {
         D("local_socket_destroy: exiting");
-        exit(1);
+        exit(0);
     }
 }
 
