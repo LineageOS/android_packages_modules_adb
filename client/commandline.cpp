@@ -68,9 +68,8 @@
 #include "incremental_server.h"
 #include "services.h"
 #include "shell_protocol.h"
+#include "socket_spec.h"
 #include "sysdeps/chrono.h"
-
-extern int gListenAll;
 
 DefaultStandardStreamsCallback DEFAULT_STANDARD_STREAMS_CALLBACK(nullptr, nullptr);
 
@@ -1572,7 +1571,7 @@ int adb_commandline(int argc, const char** argv) {
         } else if (!strcmp(argv[0], "-e")) {
             transport_type = kTransportLocal;
         } else if (!strcmp(argv[0], "-a")) {
-            gListenAll = 1;
+            gListenAll = true;
         } else if (!strncmp(argv[0], "-H", 2)) {
             if (argv[0][2] == '\0') {
                 if (argc < 2) error_exit("-H requires an argument");

@@ -21,6 +21,8 @@
 
 #include "adb_unique_fd.h"
 
+extern bool gListenAll;
+
 // Returns true if the argument starts with a plausible socket prefix.
 bool is_socket_spec(std::string_view spec);
 bool is_local_socket_spec(std::string_view spec);
