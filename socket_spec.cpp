@@ -56,8 +56,7 @@ using android::base::StringPrintf;
 #include "sysdeps/vm_sockets.h"
 #endif
 
-// Not static because it is used in commandline.c.
-int gListenAll = 0;
+bool gListenAll = false;
 
 struct LocalSocketType {
     int socket_namespace;
