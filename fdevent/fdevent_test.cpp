@@ -119,6 +119,15 @@ TEST_F(FdeventTest, fdevent_terminate) {
 }
 
 TEST_F(FdeventTest, smoke) {
+#ifdef __APPLE__  // on __APPLE__, we will encounter "Too many open files" (EMFILE), so
+    // tweak the resource ceiling.
+    struct rlimit limit;
+    ASSERT_EQ(getrlimit(RLIMIT_NOFILE, &limit), 0);
+
+    limit.rlim_cur = OPEN_MAX;
+
+    ASSERT_EQ(setrlimit(RLIMIT_NOFILE, &limit), 0);
+#endif
     for (bool use_new_callback : {true, false}) {
         fdevent_reset();
         const size_t PIPE_COUNT = 512;
@@ -316,7 +325,11 @@ TEST_F(FdeventTest, timeout) {
     ASSERT_LT(diff[2], delta.count() * 0.5);
 }
 
-TEST_F(FdeventTest, unregister_with_pending_event) {
+TEST_F(FdeventTest, unregister_with_pending_event) {  // Remains broken on _WIN32
+    // since poll() (Loop()/fdevent_poll.cpp) fails with `Invalid areg` causing
+    // a hang on Windows 10.
+    // Ref: [ FAILED ] LocalSocketTest.flush_after_shutdown
+
     fdevent_reset();
 
     int fds1[2];

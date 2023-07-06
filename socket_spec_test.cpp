@@ -172,7 +172,15 @@ TEST(socket_spec, get_host_socket_spec_port_success) {
     EXPECT_EQ(5555, get_host_socket_spec_port("tcp:5555", &error));
     EXPECT_EQ(5555, get_host_socket_spec_port("tcp:localhost:5555", &error));
     EXPECT_EQ(5555, get_host_socket_spec_port("tcp:[::1]:5555", &error));
+}
+
+TEST(socket_spec, get_host_socket_spec_port_vsock_success) {
+    std::string error;
+#ifdef __linux__  // vsock is only supported on linux
     EXPECT_EQ(5555, get_host_socket_spec_port("vsock:5555", &error));
+#else
+    GTEST_SKIP() << "vsock is only supported on linux";
+#endif
 }
 
 TEST(socket_spec, get_host_socket_spec_port_no_port) {
@@ -185,6 +193,9 @@ TEST(socket_spec, get_host_socket_spec_port_bad_ports) {
     std::string error;
     EXPECT_EQ(-1, get_host_socket_spec_port("tcp:65536", &error));
     EXPECT_EQ(-1, get_host_socket_spec_port("tcp:-5", &error));
+
+    // The following two expectations happen to fail on non-linux anyway(for
+    // different reasons than "vsock is only supported on linux").
     EXPECT_EQ(-1, get_host_socket_spec_port("vsock:-5", &error));
     EXPECT_EQ(-1, get_host_socket_spec_port("vsock:5:5555", &error));
 }
@@ -234,6 +245,7 @@ TEST(socket_spec, socket_spec_listen_connect_localfilesystem) {
                 android::base::StringPrintf("localfilesystem:%s/af_unix_socket", sock_dir.path);
         EXPECT_FALSE(socket_spec_connect(&client_fd, sock_addr, &port, &serial, &error));
         server_fd.reset(socket_spec_listen(sock_addr, &error, &port));
+
         EXPECT_NE(server_fd.get(), -1);
         EXPECT_TRUE(socket_spec_connect(&client_fd, sock_addr, &port, &serial, &error));
         EXPECT_NE(client_fd.get(), -1);
