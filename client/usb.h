@@ -36,6 +36,7 @@
 struct usb_handle;
 ADB_USB_INTERFACE(usb_handle*);
 
+#ifdef ADB_HOST
 // USB device detection.
 int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol);
 
@@ -43,6 +44,7 @@ bool should_use_libusb();
 
 namespace libusb {
 void usb_init();
+#endif
 }
 
 struct UsbConnection : public BlockingConnection {

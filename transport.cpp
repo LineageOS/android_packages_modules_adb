@@ -785,16 +785,16 @@ static int transport_write_action(int fd, struct tmsg* m) {
     return 0;
 }
 
-static bool usb_devices_start_detached() {
 #if ADB_HOST
+static bool usb_devices_start_detached() {
     static const char* env = getenv("ADB_LIBUSB_START_DETACHED");
     static bool result = env && strcmp("1", env) == 0;
     return should_use_libusb() && result;
-#else
-    return false;
-#endif
 }
+#endif
 
+//  Callback function that is consumed by the fdevent setup (initialization)
+//  from the contexts of both the client as well as adbd peers.
 static void transport_registration_func(int _fd, unsigned ev, void*) {
     tmsg m;
     atransport* t;
@@ -827,7 +827,12 @@ static void transport_registration_func(int _fd, unsigned ev, void*) {
     if (t->GetConnectionState() != kCsNoPerm) {
         t->connection()->SetTransport(t);
 
-        if (t->type == kTransportUsb && usb_devices_start_detached()) {
+        if (t->type == kTransportUsb
+#if ADB_HOST
+            && usb_devices_start_detached()  // -d setting propagated from the
+                                             // host device, hence n/a on-device.
+#endif
+        ) {
             t->SetConnectionState(kCsDetached);
         } else {
             t->connection()->Start();
@@ -1221,7 +1226,7 @@ bool atransport::Detach(std::string* error) {
     this->SetConnectionState(kCsDetached);
     return true;
 }
-#endif
+#endif  // ADB_HOST
 
 void atransport::SetConnection(std::shared_ptr<Connection> connection) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -1587,6 +1592,7 @@ void kick_all_tcp_devices() {
     reconnect_handler.CheckForKicked();
 }
 
+#if ADB_HOST
 void register_usb_transport(std::shared_ptr<Connection> connection, const char* serial,
                             const char* devpath, unsigned writeable) {
     atransport* t = new atransport(writeable ? kCsOffline : kCsNoPerm);
@@ -1637,6 +1643,7 @@ void unregister_usb_transport(usb_handle* usb) {
         return t->GetUsbHandle() == usb && t->GetConnectionState() == kCsNoPerm;
     });
 }
+#endif
 
 // Track reverse:forward commands, so that info can be used to develop
 // an 'allow-list':
