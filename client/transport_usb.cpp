@@ -122,7 +122,7 @@ static int remote_read(apacket* p, usb_handle* usb) {
     return 0;
 }
 
-#else
+#else  // !ADB_HOST
 
 // On Android devices, we rely on the kernel to provide buffered read.
 // So we can recover automatically from EOVERFLOW.
@@ -190,6 +190,7 @@ void UsbConnection::Close() {
     usb_kick(handle_);
 }
 
+#ifdef ADB_HOST
 void init_usb_transport(atransport* t, usb_handle* h) {
     D("transport: usb");
     auto connection = std::make_unique<UsbConnection>(h);
@@ -203,10 +204,7 @@ int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
 }
 
 bool should_use_libusb() {
-#if !ADB_HOST
-    return false;
-#else
     static bool enable = getenv("ADB_LIBUSB") && strcmp(getenv("ADB_LIBUSB"), "1") == 0;
     return enable;
-#endif
 }
+#endif
