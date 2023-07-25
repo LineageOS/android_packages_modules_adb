@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include <functional>
 #include <string>
 
 #include <android-base/macros.h>
