@@ -17,6 +17,8 @@
 #ifndef SERVICES_H_
 #define SERVICES_H_
 
+#include <functional>
+
 #include "adb_unique_fd.h"
 
 constexpr char kShellServiceArgRaw[] = "raw";
