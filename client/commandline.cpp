@@ -244,7 +244,7 @@ static void help() {
         ""
         "environment variables:\n"
         " $ADB_TRACE\n"
-        "     comma-separated list of debug info to log:\n"
+        "     comma/space separated list of debug info to log:\n"
         "     all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp\n"
         " $ADB_VENDOR_KEYS         colon-separated list of keys (files or directories)\n"
         " $ANDROID_SERIAL          serial number to connect to (see -s)\n"

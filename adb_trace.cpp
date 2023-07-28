@@ -130,7 +130,7 @@ static void setup_trace_mask() {
                                                         {"shell", SHELL},
                                                         {"incremental", INCREMENTAL}};
 
-    std::vector<std::string> elements = android::base::Split(trace_setting, " ");
+    std::vector<std::string> elements = android::base::Split(trace_setting, ", ");
     for (const auto& elem : elements) {
         const auto& flag = trace_flags.find(elem);
         if (flag == trace_flags.end()) {
