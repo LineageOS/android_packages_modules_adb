@@ -1261,7 +1261,7 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
         }
     }
 
-    LOG(DEBUG) << "handle_host_request(" << service << ")";
+    VLOG(SERVICES) << "handle_host_request(" << service << ")";
 
     // Transport selection:
     if (service.starts_with("transport") || service.starts_with("tport:")) {
