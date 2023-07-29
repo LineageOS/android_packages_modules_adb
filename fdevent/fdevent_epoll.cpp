@@ -24,8 +24,11 @@
 #include <android-base/logging.h>
 #include <android-base/threads.h>
 
+#include "adb_trace.h"
 #include "adb_unique_fd.h"
 #include "fdevent.h"
+
+#define TRACE_TAG FDEVENT
 
 static void fdevent_interrupt(int fd, unsigned, void*) {
     uint64_t buf;
@@ -159,7 +162,7 @@ void fdevent_context_epoll::Loop() {
                 events |= FDE_READ | FDE_ERROR;
             }
 
-            LOG(DEBUG) << dump_fde(fde) << " got events " << std::hex << std::showbase << events;
+            D("%s got events 0x%X", dump_fde(fde).c_str(), events);
             auto& fde_event = fde_events.emplace_back(fde, events);
             event_map[fde] = &fde_event;
             fde->last_active = post_poll;
