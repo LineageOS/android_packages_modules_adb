@@ -120,12 +120,15 @@ POSIX_TEST(io, WriteFdExactly_partial) {
 }
 
 POSIX_TEST(io, WriteFdExactly_ENOSPC) {
-    int fd = open("/dev/full", O_WRONLY);
-    ASSERT_NE(-1, fd);
-
-    char buf[] = "foo";
-    ASSERT_FALSE(WriteFdExactly(fd, buf, sizeof(buf)));
-    ASSERT_EQ(ENOSPC, errno);
+#ifdef __linux__
+  int fd = open("/dev/full", O_WRONLY);
+  ASSERT_NE(-1, fd);
+  char buf[] = "foo";
+  ASSERT_FALSE(WriteFdExactly(fd, buf, sizeof(buf)));
+  ASSERT_EQ(ENOSPC, errno);
+#else
+  GTEST_SKIP() << "no /dev/full";
+#endif
 }
 
 POSIX_TEST(io, WriteFdExactly_string) {
