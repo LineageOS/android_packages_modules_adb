@@ -51,6 +51,7 @@ std::string dump_fde(const fdevent* fde);
 struct fdevent_event {
     fdevent* fde;
     unsigned events;
+    fdevent_event(fdevent* pfde, unsigned ev) : fde(pfde), events(ev) {}
 };
 
 struct fdevent final {
