@@ -201,6 +201,13 @@ static void wait_service(unique_fd fd, std::string serial, TransportId transport
                 acquire_one_transport(transport_type, !serial.empty() ? serial.c_str() : nullptr,
                                       transport_id, &is_ambiguous, &error);
 
+        // If the target transport disconnect (to wait-for) is unclear, punt
+        // to the user for corrective action (e.g. specify `adb -s <>
+        // wait-for-disconnect`).
+        if (is_ambiguous) {
+            SendFail(fd, error);
+            return;
+        }
         for (const auto& state : states) {
             if (state == kCsOffline) {
                 // Special case for wait-for-disconnect:
@@ -219,11 +226,6 @@ static void wait_service(unique_fd fd, std::string serial, TransportId transport
                     return;
                 }
             }
-        }
-
-        if (is_ambiguous) {
-            SendFail(fd, error);
-            return;
         }
 
         // Sleep before retrying.
