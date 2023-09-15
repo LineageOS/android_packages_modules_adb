@@ -152,11 +152,7 @@ static void pair_service(unique_fd fd, std::string host, std::string password) {
     if (android::base::StartsWith(response, "Successful")) {
         SendProtocolString(fd.get(), response);
     } else {
-        SendFail(fd,
-                 response);  // Since the transport is being torn down, the
-                             // response string will not reach the client-end
-                             // (TODO: at the moment), and instead consumes a
-                             // generic "protocol fault" error.
+        SendFail(fd, response);
     }
 }
 
