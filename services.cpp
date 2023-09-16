@@ -215,12 +215,14 @@ static void wait_service(unique_fd fd, std::string serial, TransportId transport
         for (const auto& state : states) {
             if (state == kCsOffline) {
                 // Special case for wait-for-disconnect:
-                // We want to wait for USB devices to completely disappear, but TCP devices can
-                // go into the offline state, since we automatically reconnect.
+                // We want to wait for USB devices to completely disappear, but
+                // TCP devices can go into the offline state, since we
+                // automatically reconnect (disabling WiFi or disconnecting
+                // from the WiFi connection would trigger transition from
+                // `device` to `offline`).
+                // If the transport is torn down (regardless of whether it is
+                // USB or wireless), unblock.
                 if (!t) {
-                    SendOkay(fd);
-                    return;
-                } else if (!t->GetUsbHandle()) {
                     SendOkay(fd);
                     return;
                 }
