@@ -204,7 +204,14 @@ int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
 }
 
 bool should_use_libusb() {
-    static bool enable = getenv("ADB_LIBUSB") && strcmp(getenv("ADB_LIBUSB"), "1") == 0;
+    bool enable = false;
+#if defined(__APPLE__)
+    enable = true;
+#endif
+    char* env = getenv("ADB_LIBUSB");
+    if (env) {
+        enable = (strcmp(env, "1") == 0);
+    }
     return enable;
 }
 #endif
