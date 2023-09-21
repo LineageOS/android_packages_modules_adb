@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-#if !ADB_HOST
-
-#define TRACE_TAG ADB_WIRELESS
-
 #include "adb_wifi.h"
 
 #include <unistd.h>
@@ -226,5 +222,3 @@ void adbd_wifi_secure_connect(atransport* t) {
     t->auth_id = adbd_auth_tls_device_connected(auth_ctx, kAdbTransportTypeWifi, t->auth_key.data(),
                                                 t->auth_key.size());
 }
-
-#endif /* !HOST */
