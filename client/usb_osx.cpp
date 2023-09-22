@@ -264,7 +264,6 @@ AndroidInterfaceAdded(io_iterator_t iterator)
                 int langCount = (req.wLenDone - 2) / 2, lang;
 
                 for (lang = 1; lang <= langCount; lang++) {
-
                     memset(buffer, 0, sizeof(buffer));
                     memset(&req, 0, sizeof(req));
 
