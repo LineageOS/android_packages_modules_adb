@@ -98,7 +98,7 @@ struct Block {
     const char& operator[](size_t idx) const { return data()[idx]; }
 
     bool operator==(const Block& rhs) const {
-        static_assert(std::is_standard_layout<Block>());
+        static_assert(std::is_standard_layout<decltype(data())>());
         return size() == rhs.size() && memcmp(data(), rhs.data(), size()) == 0;
     }
 
@@ -232,7 +232,7 @@ struct IOVector {
 
         size_t offset = 0;
         iterate_blocks([&offset, &result](const char* data, size_t len) {
-            static_assert(std::is_standard_layout<CollectionType>());
+            static_assert(std::is_standard_layout<decltype(result)>());
             memcpy(&result[offset], data, len);
             offset += len;
         });
