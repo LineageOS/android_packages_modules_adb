@@ -32,8 +32,7 @@ static IOVector::block_type create_block(char value, size_t len) {
     auto block = IOVector::block_type();
     block.resize(len);
 
-    static_assert(std::is_standard_layout<struct Block>());
-    static_assert(std::is_standard_layout<struct IOVector>());
+    static_assert(std::is_standard_layout<decltype(block)>());
     memset(&(block)[0], value, len);
 
     return block;
