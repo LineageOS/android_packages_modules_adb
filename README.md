@@ -90,5 +90,5 @@ The two types of asocket (Remote and Local) differentiate between outbound and i
 ## adbd <-> APPPLICATION communication
 
 This pipeline is detailed in [daemon/jdwp_service.cpp](daemon/jdwp_service.cpp) with ASCII drawings! The JDWP extension implemented by Dalvik/ART are documented in:
-- platform/dalvik/+/master/docs/debugmon.html
-- platform/dalvik/+/master/docs/debugger.html
+- platform/dalvik/+/main/docs/debugmon.html
+- platform/dalvik/+/main/docs/debugger.html
