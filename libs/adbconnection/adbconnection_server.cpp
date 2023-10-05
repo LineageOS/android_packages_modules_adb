@@ -28,30 +28,21 @@
 #include <android-base/logging.h>
 #include <android-base/unique_fd.h>
 
+#include "adbconnection/common.h"
 #include "adbconnection/process_info.h"
 
 using android::base::unique_fd;
 
-#define JDWP_CONTROL_NAME "\0jdwp-control"
-#define JDWP_CONTROL_NAME_LEN (sizeof(JDWP_CONTROL_NAME) - 1)
-
-static_assert(JDWP_CONTROL_NAME_LEN <= sizeof(reinterpret_cast<sockaddr_un*>(0)->sun_path));
-
 // Listen for incoming jdwp clients forever.
 void adbconnection_listen(void (*callback)(int fd, ProcessInfo process)) {
-  sockaddr_un addr = {};
-  socklen_t addrlen = JDWP_CONTROL_NAME_LEN + sizeof(addr.sun_family);
-
-  addr.sun_family = AF_UNIX;
-  memcpy(addr.sun_path, JDWP_CONTROL_NAME, JDWP_CONTROL_NAME_LEN);
-
   unique_fd s(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK | SOCK_CLOEXEC, 0));
   if (s < 0) {
     PLOG(ERROR) << "failed to create JDWP control socket";
     return;
   }
 
-  if (bind(s.get(), reinterpret_cast<sockaddr*>(&addr), addrlen) < 0) {
+  auto [addr, addr_len] = get_control_socket_addr();
+  if (bind(s.get(), reinterpret_cast<sockaddr*>(&addr), addr_len) < 0) {
     PLOG(ERROR) << "failed to bind JDWP control socket";
     return;
   }
