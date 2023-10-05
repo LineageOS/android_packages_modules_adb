@@ -13,7 +13,7 @@ package {
 
 cc_library {
     name: "libadbconnection_server",
-    srcs: ["adbconnection_server.cpp"],
+    srcs: ["adbconnection_server.cpp", "common.cpp"],
 
     export_include_dirs: ["include"],
 
@@ -38,7 +38,7 @@ cc_library {
 
 cc_library {
     name: "libadbconnection_client",
-    srcs: ["adbconnection_client.cpp"],
+    srcs: ["adbconnection_client.cpp", "common.cpp"],
 
     export_include_dirs: ["include"],
 
