@@ -576,6 +576,9 @@ cc_library {
     recovery_available: true,
     compile_multilib: "both",
 
+    // avoid getting duplicate symbol of android::build::getbuildnumber().
+    use_version_lib: false,
+
     srcs: [
         "daemon/file_sync_service.cpp",
         "daemon/services.cpp",
