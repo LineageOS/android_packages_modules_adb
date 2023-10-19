@@ -23,18 +23,16 @@
 
 // USB host/client interface.
 
-#define ADB_USB_INTERFACE(handle_ref_type)                       \
-    void usb_init();                                             \
-    void usb_cleanup();                                          \
-    int usb_write(handle_ref_type h, const void* data, int len); \
-    int usb_read(handle_ref_type h, void* data, int len);        \
-    int usb_close(handle_ref_type h);                            \
-    void usb_reset(handle_ref_type h);                           \
-    void usb_kick(handle_ref_type h);                            \
-    size_t usb_get_max_packet_size(handle_ref_type)
-
 struct usb_handle;
-ADB_USB_INTERFACE(usb_handle*);
+
+void usb_init();
+void usb_cleanup();
+int usb_write(usb_handle* h, const void* data, int len);
+int usb_read(usb_handle* h, void* data, int len);
+int usb_close(usb_handle* h);
+void usb_reset(usb_handle* h);
+void usb_kick(usb_handle* h);
+size_t usb_get_max_packet_size(usb_handle*);
 
 #ifdef ADB_HOST
 // USB device detection.
