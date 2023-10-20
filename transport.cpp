@@ -592,10 +592,6 @@ void kick_transport(atransport* t, bool reset) {
 #endif
 }
 
-static int transport_registration_send = -1;
-static int transport_registration_recv = -1;
-static fdevent* transport_registration_fde;
-
 #if ADB_HOST
 
 /* this adds support required by the 'track-devices' service.
@@ -726,65 +722,6 @@ void update_transports() {
 
 #endif  // ADB_HOST
 
-// The transport listeners communicate with the transports list via fdevent. tmsg structure is a
-// container used as message unit and written to a pipe in order to communicate the transport
-// (pointer) and the action to perform.
-//
-//     Transport listener         FDEVENT          Transports list
-//     --------------------------------------------------------------
-//     (&transport,action)   ->    tmsg     ->   (&transport, action)
-//
-// TODO: Figure out if this fdevent bridge really is necessary? With the re-entrant lock to sync
-// access, what prevents us from "simply" updating the transport_list directly?
-
-struct tmsg {
-    atransport* transport;
-
-    enum struct Action : int {
-        UNREGISTER = 0,  // Unregister the transport from transport list (typically a device has
-                         // been unplugged from USB or disconnected from TCP.
-        REGISTER = 1,  // Register the transport to the transport list (typically a device has been
-                       // plugged via USB or connected via TCP.
-    };
-    Action action;
-};
-
-static int transport_read_action(int fd, struct tmsg* m) {
-    char* p = (char*)m;
-    int len = sizeof(*m);
-    int r;
-
-    while (len > 0) {
-        r = adb_read(fd, p, len);
-        if (r > 0) {
-            len -= r;
-            p += r;
-        } else {
-            D("transport_read_action: on fd %d: %s", fd, strerror(errno));
-            return -1;
-        }
-    }
-    return 0;
-}
-
-static int transport_write_action(int fd, struct tmsg* m) {
-    char* p = (char*)m;
-    int len = sizeof(*m);
-    int r;
-
-    while (len > 0) {
-        r = adb_write(fd, p, len);
-        if (r > 0) {
-            len -= r;
-            p += r;
-        } else {
-            D("transport_write_action: on fd %d: %s", fd, strerror(errno));
-            return -1;
-        }
-    }
-    return 0;
-}
-
 #if ADB_HOST
 static bool usb_devices_start_detached() {
     static const char* env = getenv("ADB_LIBUSB_START_DETACHED");
@@ -793,36 +730,20 @@ static bool usb_devices_start_detached() {
 }
 #endif
 
-//  Callback function that is consumed by the fdevent setup (initialization)
-//  from the contexts of both the client as well as adbd peers.
-static void transport_registration_func(int _fd, unsigned ev, void*) {
-    tmsg m;
-    atransport* t;
+static void fdevent_unregister_transport(atransport* t) {
+    D("transport: %s deleting", t->serial.c_str());
 
-    if (!(ev & FDE_READ)) {
-        return;
+    {
+        std::lock_guard<std::recursive_mutex> lock(transport_lock);
+        transport_list.remove(t);
     }
 
-    if (transport_read_action(_fd, &m)) {
-        PLOG(FATAL) << "cannot read transport registration socket";
-    }
+    delete t;
 
-    t = m.transport;
+    update_transports();
+}
 
-    if (m.action == tmsg::Action::UNREGISTER) {
-        D("transport: %s deleting", t->serial.c_str());
-
-        {
-            std::lock_guard<std::recursive_mutex> lock(transport_lock);
-            transport_list.remove(t);
-        }
-
-        delete t;
-
-        update_transports();
-        return;
-    }
-
+static void fdevent_register_transport(atransport* t) {
     /* don't create transport threads for inaccessible devices */
     if (t->GetConnectionState() != kCsNoPerm) {
         t->connection()->SetTransport(t);
@@ -860,22 +781,6 @@ void init_reconnect_handler(void) {
 }
 #endif
 
-void init_transport_registration(void) {
-    int s[2];
-
-    if (adb_socketpair(s)) {
-        PLOG(FATAL) << "cannot open transport registration socketpair";
-    }
-    D("socketpair: (%d,%d)", s[0], s[1]);
-
-    transport_registration_send = s[0];
-    transport_registration_recv = s[1];
-
-    transport_registration_fde =
-            fdevent_create(transport_registration_recv, transport_registration_func, nullptr);
-    fdevent_set(transport_registration_fde, FDE_READ);
-}
-
 void kick_all_transports() {
 #if ADB_HOST
     reconnect_handler.Stop();
@@ -907,25 +812,14 @@ void kick_all_transports_by_auth_key(std::string_view auth_key) {
 }
 #endif
 
-/* the fdevent select pump is single threaded */
 void register_transport(atransport* transport) {
-    tmsg m;
-    m.transport = transport;
-    m.action = tmsg::Action::REGISTER;
     D("transport: %s registered", transport->serial.c_str());
-    if (transport_write_action(transport_registration_send, &m)) {
-        PLOG(FATAL) << "cannot write transport registration socket";
-    }
+    fdevent_run_on_looper([=]() { fdevent_register_transport(transport); });
 }
 
 static void remove_transport(atransport* transport) {
-    tmsg m;
-    m.transport = transport;
-    m.action = tmsg::Action::UNREGISTER;
     D("transport: %s removed", transport->serial.c_str());
-    if (transport_write_action(transport_registration_send, &m)) {
-        PLOG(FATAL) << "cannot write transport registration socket";
-    }
+    fdevent_run_on_looper([=]() { fdevent_unregister_transport(transport); });
 }
 
 static void transport_destroy(atransport* t) {

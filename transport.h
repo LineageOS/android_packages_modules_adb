@@ -473,7 +473,6 @@ void update_transports(void);
 bool iterate_transports(std::function<bool(const atransport*)> fn);
 
 void init_reconnect_handler(void);
-void init_transport_registration(void);
 void init_mdns_transport_discovery(void);
 std::string list_transports(bool long_listing);
 
