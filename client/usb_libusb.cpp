@@ -748,7 +748,8 @@ struct LibusbConnection : public Connection {
         }
 #else
         // We need to open the device to get its serial on Windows and OS X.
-        if (!connection->OpenDevice(nullptr)) {
+        std::string error;
+        if (!connection->OpenDevice(&error)) {
             LOG(INFO) << "ignoring device " << connection->GetUsbDeviceAddress()
                       << ": not an adb interface. (OpenDevice)";
             return {};
