@@ -205,8 +205,6 @@ int adbd_main(int server_port) {
     }
 #endif
 
-    init_transport_registration();
-
     // We need to call this even if auth isn't enabled because the file
     // descriptor will always be open.
     adbd_cloexec_auth_socket();
