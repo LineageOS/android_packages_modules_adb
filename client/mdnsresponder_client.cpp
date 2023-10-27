@@ -133,7 +133,7 @@ class ResolvedService : public AsyncServiceRef {
             Initialize();
         }
 
-        D("Client version: %d Service version: %d\n", clientVersion_, service_version_);
+        D("Client version: %d Service version: %d", clientVersion_, service_version_);
     }
 
     bool ConnectSecureWifiDevice() {
