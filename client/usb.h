@@ -34,7 +34,6 @@ void usb_reset(usb_handle* h);
 void usb_kick(usb_handle* h);
 size_t usb_get_max_packet_size(usb_handle*);
 
-#ifdef ADB_HOST
 // USB device detection.
 bool is_adb_interface(int usb_class, int usb_subclass, int usb_protocol);
 
@@ -42,7 +41,6 @@ bool should_use_libusb();
 
 namespace libusb {
 void usb_init();
-#endif
 }
 
 struct UsbConnection : public BlockingConnection {
