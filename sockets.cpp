@@ -820,6 +820,8 @@ static int smart_socket_enqueue(asocket* s, apacket::payload_type data) {
 
     service = std::string_view(s->smart_socket_data).substr(4);
 
+    VLOG(SERVICES) << "service request: '" << service << "'";
+
     // TODO: These should be handled in handle_host_request.
     if (android::base::ConsumePrefix(&service, "host-serial:")) {
         // serial number should follow "host:" and could be a host:port string.
