@@ -47,6 +47,7 @@ static void UpdateWatchdog() REQUIRES(g_watchdog_mutex) {
     static std::once_flag once;
     std::call_once(once, []() {
         signal(SIGALRM, [](int) {
+            LOG(WARNING) << "adbd watchdog expired; rebooting...";
             execl("/system/bin/reboot", "/system/bin/reboot", "bootloader", nullptr);
         });
     });
