@@ -31,8 +31,6 @@
 
 #include "adb.h"
 
-#if ADB_HOST
-
 #if defined(__APPLE__)
 #define CHECK_PACKET_OVERFLOW 0
 #else
@@ -122,34 +120,6 @@ static int remote_read(apacket* p, usb_handle* usb) {
     return 0;
 }
 
-#else  // !ADB_HOST
-
-// On Android devices, we rely on the kernel to provide buffered read.
-// So we can recover automatically from EOVERFLOW.
-static int remote_read(apacket* p, usb_handle* usb) {
-    if (usb_read(usb, &p->msg, sizeof(amessage)) != sizeof(amessage)) {
-        PLOG(ERROR) << "remote usb: read terminated (message)";
-        return -1;
-    }
-
-    if (p->msg.data_length) {
-        if (p->msg.data_length > MAX_PAYLOAD) {
-            PLOG(ERROR) << "remote usb: read overflow (data length = " << p->msg.data_length << ")";
-            return -1;
-        }
-
-        p->payload.resize(p->msg.data_length);
-        if (usb_read(usb, &p->payload[0], p->payload.size()) !=
-            static_cast<int>(p->payload.size())) {
-            PLOG(ERROR) << "remote usb: terminated (data)";
-            return -1;
-        }
-    }
-
-    return 0;
-}
-#endif
-
 UsbConnection::~UsbConnection() {
     usb_close(handle_);
 }
@@ -190,7 +160,6 @@ void UsbConnection::Close() {
     usb_kick(handle_);
 }
 
-#ifdef ADB_HOST
 void init_usb_transport(atransport* t, usb_handle* h) {
     D("transport: usb");
     auto connection = std::make_unique<UsbConnection>(h);
@@ -219,4 +188,3 @@ bool should_use_libusb() {
     }
     return enable;
 }
-#endif
