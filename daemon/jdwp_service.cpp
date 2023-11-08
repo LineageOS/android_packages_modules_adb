@@ -182,6 +182,11 @@ struct JdwpProcess {
     ProcessInfo process;
     fdevent* fde = nullptr;
 
+    // When a jdwp:<PID> request arrives, we create a socketpair and immediately
+    // return one end to the requester. The other end is "staged" in this queue.
+    // The next time @jdwp-control becomes FDE_WRITE, we send the back() fd (it is
+    // received on the other end of @jdwp-control by ART) and pop it. This queue
+    // should almost always be empty if ART reads() from @jdwp-control properly.
     std::vector<unique_fd> out_fds;
 };
 
