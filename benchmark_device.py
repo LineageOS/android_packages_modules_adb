@@ -18,8 +18,14 @@
 import os
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
+
+# Make sure environment is setup, otherwise "adb" module is not available.
+if os.getenv("ANDROID_BUILD_TOP") is None:
+    print("Run source/lunch before running " + sys.argv[0])
+    sys.exit()
 
 import adb
 
