@@ -92,3 +92,13 @@ The two types of asocket (Remote and Local) differentiate between outbound and i
 This pipeline is detailed in [daemon/jdwp_service.cpp](daemon/jdwp_service.cpp) with ASCII drawings! The JDWP extension implemented by Dalvik/ART are documented in:
 - platform/dalvik/+/main/docs/debugmon.html
 - platform/dalvik/+/main/docs/debugger.html
+
+### Benchmark sample run for Pixel 8,USB
+
+```
+$ ./benchmark_device.py
+sink 100MiB: 10 runs: median 27.00 MiB/s, mean 26.39 MiB/s, stddev: 1.11 MiB/s
+source 100MiB: 10 runs: median 36.97 MiB/s, mean 37.05 MiB/s, stddev: 0.46 MiB/s
+push 100MiB: 10 runs: median 331.96 MiB/s, mean 329.81 MiB/s, stddev: 14.67 MiB/s
+pull 100MiB: 10 runs: median 34.55 MiB/s, mean 33.57 MiB/s, stddev: 2.54 MiB/s
+```
