@@ -1642,6 +1642,7 @@ int adb_commandline(int argc, const char** argv) {
         }
         server_socket_str = temp;
     }
+    VLOG(ADB) << "Using server socket: " << server_socket_str;
 
     bool server_start =
             is_daemon || is_server || (argc > 0 && strcmp(argv[0], "start-server") == 0);
