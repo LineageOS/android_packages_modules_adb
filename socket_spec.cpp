@@ -52,8 +52,8 @@ using android::base::StringPrintf;
 #endif
 
 #if ADB_LINUX
+#include <linux/vm_sockets.h>
 #include <sys/socket.h>
-#include "sysdeps/vm_sockets.h"
 #endif
 
 bool gListenAll = false;
