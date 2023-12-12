@@ -153,9 +153,6 @@ struct LibusbConnection : public Connection {
     bool MaybeCleanup(ReadBlock* read_block) REQUIRES(read_mutex_) {
         CHECK(read_block);
         CHECK(read_block->transfer);
-        if (read_block->transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-            CHECK(terminated_);
-        }
 
         if (terminated_) {
             Cleanup(read_block);
