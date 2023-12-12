@@ -1,13 +1,13 @@
-# ADB(1) MAN PAGE 
+# ADB(1) MAN PAGE
 
-# VERSION 
+# VERSION
 
-1.0.41                                     
+1.0.41
 
 # NAME
 
 **adb**
-&nbsp;&nbsp;&nbsp;&nbsp;CLI Client for ADB (Android Debug Bridge) Server. 
+&nbsp;&nbsp;&nbsp;&nbsp;CLI Client for ADB (Android Debug Bridge) Server.
 
 # SYNOPSIS
 
@@ -21,237 +21,237 @@ Tasks are performed via commands. Some commands are fulfilled directly by the se
 
 # GLOBAL OPTIONS:
 
-**-a**  
+**-a**
 &nbsp;&nbsp;&nbsp;&nbsp;Listen on all network interfaces, not just localhost.
 
-**-d**  
+**-d**
 &nbsp;&nbsp;&nbsp;&nbsp;Use USB device (error if multiple devices connected).
 
-**-e**  
+**-e**
 &nbsp;&nbsp;&nbsp;&nbsp;Use TCP/IP device (error if multiple TCP/IP devices available).
 
-**-s** **SERIAL**  
+**-s** **SERIAL**
 &nbsp;&nbsp;&nbsp;&nbsp;Use device with given **SERIAL** (overrides $ANDROID_SERIAL).
 
-**-t** **ID**  
+**-t** **ID**
 &nbsp;&nbsp;&nbsp;&nbsp;Use device with given transport **ID**.
 
-**-H**  
+**-H**
 &nbsp;&nbsp;&nbsp;&nbsp;Name of adb server host [default=localhost].
 
-**-P** **PORT** 
+**-P** **PORT*
 &nbsp;&nbsp;&nbsp;&nbsp;Smart socket **PORT** of adb server [default=5037].
 
-**-L** **SOCKET**  
+**-L** **SOCKET**
 &nbsp;&nbsp;&nbsp;&nbsp;Listen on given socket for adb server [default=tcp:localhost:5037].
 
-**\-\-one-device** **SERIAL**|**USB**  
+**\-\-one-device** **SERIAL**|**USB**
 &nbsp;&nbsp;&nbsp;&nbsp;Server will only connect to one USB device, specified by a **SERIAL** number or **USB** device address (only with 'start-server' or 'server nodaemon').
 
-**\-\-exit-on-write-error**  
+**\-\-exit-on-write-error**
 &nbsp;&nbsp;&nbsp;&nbsp;Exit if stdout is closed.
 
 
 # GENERAL COMMANDS:
 
-devices [**-l**]  
-&nbsp;&nbsp;&nbsp;&nbsp;List connected devices.  
+devices [**-l**]
+&nbsp;&nbsp;&nbsp;&nbsp;List connected devices.
 
-**-l**  
+**-l**
 &nbsp;&nbsp;&nbsp;&nbsp;Use long output.
 
-help  
-&nbsp;&nbsp;&nbsp;&nbsp;Show this help message.  
+help
+&nbsp;&nbsp;&nbsp;&nbsp;Show this help message.
 
-version  
-&nbsp;&nbsp;&nbsp;&nbsp;Show version number.  
+version
+&nbsp;&nbsp;&nbsp;&nbsp;Show version number.
 
 # NETWORKING
 
-connect **HOST**[:**PORT**]  
-&nbsp;&nbsp;&nbsp;&nbsp;Connect to a device via TCP/IP [default **PORT**=5555].  
+connect **HOST**[:**PORT**]
+&nbsp;&nbsp;&nbsp;&nbsp;Connect to a device via TCP/IP [default **PORT**=5555].
 
-disconnect [**HOST**[:**PORT**]]  
+disconnect [**HOST**[:**PORT**]]
 &nbsp;&nbsp;&nbsp;&nbsp;Disconnect from given TCP/IP device [default **PORT**=5555], or all.
 
-pair **HOST**[:**PORT**] [**PAIRING_CODE**]   
+pair **HOST**[:**PORT**] [**PAIRING_CODE**]
 &nbsp;&nbsp;&nbsp;&nbsp;Pair with a device for secure TCP/IP communication.
 
-forward **\-\-list** | [**--no-rebind**] **LOCAL_REMOTE** | **\-\-remove** **LOCAL** | **\-\-remove-all**   
+forward **\-\-list** | [**--no-rebind**] **LOCAL_REMOTE** | **\-\-remove** **LOCAL** | **\-\-remove-all**
 
-**\-\-list**  
+**\-\-list**
 &nbsp;&nbsp;&nbsp;&nbsp;List all forward socket connections.
 
-[**--no-rebind**] **LOCAL_REMOTE**   
-&nbsp;&nbsp;&nbsp;&nbsp;Forward socket connection using one of the followings.  
+[**--no-rebind**] **LOCAL_REMOTE**
+&nbsp;&nbsp;&nbsp;&nbsp;Forward socket connection using one of the followings.
 
-&nbsp;&nbsp;&nbsp;&nbsp;**tcp**:**PORT** (local may be "tcp:0" to pick any open port.  
-&nbsp;&nbsp;&nbsp;&nbsp;**localreserved**:**UNIX_DOMAIN_SOCKET_NAME**.  
-&nbsp;&nbsp;&nbsp;&nbsp;**localfilesystem**:**UNIX_DOMAIN_SOCKET_NAME**.  
-&nbsp;&nbsp;&nbsp;&nbsp;**jdwp**:**PROCESS PID** (remote only).  
-&nbsp;&nbsp;&nbsp;&nbsp;**vsock**:**CID**:**PORT** (remote only).  
+&nbsp;&nbsp;&nbsp;&nbsp;**tcp**:**PORT** (local may be "tcp:0" to pick any open port.
+&nbsp;&nbsp;&nbsp;&nbsp;**localreserved**:**UNIX_DOMAIN_SOCKET_NAME**.
+&nbsp;&nbsp;&nbsp;&nbsp;**localfilesystem**:**UNIX_DOMAIN_SOCKET_NAME**.
+&nbsp;&nbsp;&nbsp;&nbsp;**jdwp**:**PROCESS PID** (remote only).
+&nbsp;&nbsp;&nbsp;&nbsp;**vsock**:**CID**:**PORT** (remote only).
 &nbsp;&nbsp;&nbsp;&nbsp;**acceptfd**:**FD** (listen only).
 
-**\-\-remove** **LOCAL**  
+**\-\-remove** **LOCAL**
 &nbsp;&nbsp;&nbsp;&nbsp;Remove specific forward socket connection.
 
-**\-\-remove-all**  
+**\-\-remove-all**
 &nbsp;&nbsp;&nbsp;&nbsp;Remove all forward socket connections.
 
-reverse **\-\-list** | [**\-\-no-rebind**] **REMOTE** **LOCAL** | **\-\-remove** **REMOTE** | **\-\-remove-all**    
+reverse **\-\-list** | [**\-\-no-rebind**] **REMOTE** **LOCAL** | **\-\-remove** **REMOTE** | **\-\-remove-all**
 
-**\-\-list**  
+**\-\-list**
 &nbsp;&nbsp;&nbsp;&nbsp;List all reverse socket connections from device.
 
-[**\-\-no-rebind**] **REMOTE** **LOCAL**  
-&nbsp;&nbsp;&nbsp;&nbsp;Reverse socket connection using one of the following.  
+[**\-\-no-rebind**] **REMOTE** **LOCAL**
+&nbsp;&nbsp;&nbsp;&nbsp;Reverse socket connection using one of the following.
 
-&nbsp;&nbsp;&nbsp;&nbsp;tcp:**PORT** (**REMOTE** may be "tcp:0" to pick any open port).  
-&nbsp;&nbsp;&nbsp;&nbsp;localabstract:**UNIX_DOMAIN_SOCKET_NAME**.  
-&nbsp;&nbsp;&nbsp;&nbsp;localreserved:**UNIX_DOMAIN_SOCKET_NAME**.  
+&nbsp;&nbsp;&nbsp;&nbsp;tcp:**PORT** (**REMOTE** may be "tcp:0" to pick any open port).
+&nbsp;&nbsp;&nbsp;&nbsp;localabstract:**UNIX_DOMAIN_SOCKET_NAME**.
+&nbsp;&nbsp;&nbsp;&nbsp;localreserved:**UNIX_DOMAIN_SOCKET_NAME**.
 &nbsp;&nbsp;&nbsp;&nbsp;localfilesystem:**UNIX_DOMAIN_SOCKET_NAME**.
 
-**\-\-remove** **REMOTE**  
+**\-\-remove** **REMOTE**
 &nbsp;&nbsp;&nbsp;&nbsp;Remove specific reverse socket connection.
 
-**\-\-remove-all**  
+**\-\-remove-all**
 &nbsp;&nbsp;&nbsp;&nbsp;Remove all reverse socket connections from device.
 
-mdns **check** | **services**   
-&nbsp;&nbsp;&nbsp;&nbsp;Perform mDNS subcommands.  
+mdns **check** | **services**
+&nbsp;&nbsp;&nbsp;&nbsp;Perform mDNS subcommands.
 
 **check**
-&nbsp;&nbsp;&nbsp;&nbsp;Check if mdns discovery is available.  
+&nbsp;&nbsp;&nbsp;&nbsp;Check if mdns discovery is available.
 
 **services**
-&nbsp;&nbsp;&nbsp;&nbsp;List all discovered services.  
+&nbsp;&nbsp;&nbsp;&nbsp;List all discovered services.
 
 
 # FILE TRANSFER:
 
-push [**--sync**] [**-z** **ALGORITHM**] [**-Z**] **LOCAL**... **REMOTE**  
+push [**--sync**] [**-z** **ALGORITHM**] [**-Z**] **LOCAL**... **REMOTE**
 &nbsp;&nbsp;&nbsp;&nbsp;Copy local files/directories to device.
 
-**--sync**  
+**--sync**
 &nbsp;&nbsp;&nbsp;&nbsp;Only push files that are newer on the host than the device.
 
-**-n**  
+**-n**
 &nbsp;&nbsp;&nbsp;&nbsp;Dry run, push files to device without storing to the filesystem.
 
-**-z**  
+**-z**
 &nbsp;&nbsp;&nbsp;&nbsp;enable compression with a specified algorithm (any/none/brotli/lz4/zstd).
 
-**-Z**  
-&nbsp;&nbsp;&nbsp;&nbsp;Disable compression.  
+**-Z**
+&nbsp;&nbsp;&nbsp;&nbsp;Disable compression.
 
-pull [**-a**] [**-z** **ALGORITHM**] [**-Z**] **REMOTE**... **LOCAL**  
-&nbsp;&nbsp;&nbsp;&nbsp;Copy files/dirs from device  
+pull [**-a**] [**-z** **ALGORITHM**] [**-Z**] **REMOTE**... **LOCAL**
+&nbsp;&nbsp;&nbsp;&nbsp;Copy files/dirs from device
 
-**-a**  
+**-a**
 &nbsp;&nbsp;&nbsp;&nbsp;preserve file timestamp and mode.
 
-**-z**  
-&nbsp;&nbsp;&nbsp;&nbsp;enable compression with a specified algorithm (**any**/**none**/**brotli**/**lz4**/**zstd**)  
+**-z**
+&nbsp;&nbsp;&nbsp;&nbsp;enable compression with a specified algorithm (**any**/**none**/**brotli**/**lz4**/**zstd**)
 
-**-Z**  
-&nbsp;&nbsp;&nbsp;&nbsp;disable compression  
+**-Z**
+&nbsp;&nbsp;&nbsp;&nbsp;disable compression
 
-sync [**-l**] [**-z** **ALGORITHM**] [**-Z**] [**all**|**data**|**odm**|**oem**|**product**|**system**|**system_ext**|**vendor**]  
-&nbsp;&nbsp;&nbsp;&nbsp;Sync a local build from $ANDROID_PRODUCT_OUT to the device (default all)  
+sync [**-l**] [**-z** **ALGORITHM**] [**-Z**] [**all**|**data**|**odm**|**oem**|**product**|**system**|**system_ext**|**vendor**]
+&nbsp;&nbsp;&nbsp;&nbsp;Sync a local build from $ANDROID_PRODUCT_OUT to the device (default all)
 
-**-n**  
-&nbsp;&nbsp;&nbsp;&nbsp;Dry run. Push files to device without storing to the filesystem.    
+**-n**
+&nbsp;&nbsp;&nbsp;&nbsp;Dry run. Push files to device without storing to the filesystem.
 
-**-l**  
-&nbsp;&nbsp;&nbsp;&nbsp;List files that would be copied, but don't copy them.  
+**-l**
+&nbsp;&nbsp;&nbsp;&nbsp;List files that would be copied, but don't copy them.
 
-**-z**  
-Enable compression with a specified algorithm (**any**/**none**/**brotli**/**lz4**/**zstd**)  
+**-z**
+Enable compression with a specified algorithm (**any**/**none**/**brotli**/**lz4**/**zstd**)
 
-**-Z**  
-Disable compression.  
+**-Z**
+Disable compression.
 
 # SHELL:
 
-shell [**-e** **ESCAPE**] [**-n**] [**-Tt**] [**-x**] [**COMMAND**...]  
+shell [**-e** **ESCAPE**] [**-n**] [**-Tt**] [**-x**] [**COMMAND**...]
 &nbsp;&nbsp;&nbsp;&nbsp;Run remote shell command (interactive shell if no command given).
 
-**-e**  
+**-e**
 &nbsp;&nbsp;&nbsp;&nbsp;Choose escape character, or "**none**"; default '**~**'.
 
-**-n**  
+**-n**
 &nbsp;&nbsp;&nbsp;&nbsp;Don't read from stdin.
 
-**-T**:  
+**-T**:
 &nbsp;&nbsp;&nbsp;&nbsp;Disable pty allocation.
 
-**-t**:  
-&nbsp;&nbsp;&nbsp;&nbsp;Allocate a pty if on a tty (-tt: force pty allocation).  
+**-t**:
+&nbsp;&nbsp;&nbsp;&nbsp;Allocate a pty if on a tty (-tt: force pty allocation).
 
-**-x**   
-&nbsp;&nbsp;&nbsp;&nbsp;Disable remote exit codes and stdout/stderr separation.  
+**-x**
+&nbsp;&nbsp;&nbsp;&nbsp;Disable remote exit codes and stdout/stderr separation.
 
-emu **COMMAND**  
+emu **COMMAND**
 &nbsp;&nbsp;&nbsp;&nbsp;Run emulator console **COMMAND**
 
-# APP INSTALLATION 
+# APP INSTALLATION
 (see also `adb shell cmd package help`):
 
-install [**-lrtsdg**] [**--instant**] **PACKAGE**  
+install [**-lrtsdg**] [**--instant**] **PACKAGE**
 &nbsp;&nbsp;&nbsp;&nbsp;Push a single package to the device and install it
 
-install-multiple [**-lrtsdpg**] [**--instant**] **PACKAGE**...  
+install-multiple [**-lrtsdpg**] [**--instant**] **PACKAGE**...
 &nbsp;&nbsp;&nbsp;&nbsp;Push multiple APKs to the device for a single package and install them
 
-install-multi-package [**-lrtsdpg**] [**--instant**] **PACKAGE**...  
+install-multi-package [**-lrtsdpg**] [**--instant**] **PACKAGE**...
 &nbsp;&nbsp;&nbsp;&nbsp;Push one or more packages to the device and install them atomically
 
-**-r**:  
+**-r**:
 &nbsp;&nbsp;&nbsp;&nbsp;Replace existing application.
 
-**-t**  
+**-t**
 &nbsp;&nbsp;&nbsp;&nbsp;Allow test packages.
 
-**-d**  
-&nbsp;&nbsp;&nbsp;&nbsp;Allow version code downgrade (debuggable packages only).  
+**-d**
+&nbsp;&nbsp;&nbsp;&nbsp;Allow version code downgrade (debuggable packages only).
 
-**-p**  
+**-p**
 &nbsp;&nbsp;&nbsp;&nbsp;Partial application install (install-multiple only).
 
-**-g**   
-&nbsp;&nbsp;&nbsp;&nbsp;Grant all runtime permissions.  
+**-g**
+&nbsp;&nbsp;&nbsp;&nbsp;Grant all runtime permissions.
 
-**\-\-abi** **ABI**  
+**\-\-abi** **ABI**
 &nbsp;&nbsp;&nbsp;&nbsp;Override platform's default ABI.
 
-**\-\-instant**  
-&nbsp;&nbsp;&nbsp;&nbsp;Cause the app to be installed as an ephemeral install app.  
+**\-\-instant**
+&nbsp;&nbsp;&nbsp;&nbsp;Cause the app to be installed as an ephemeral install app.
 
-**\-\-no-streaming**  
-&nbsp;&nbsp;&nbsp;&nbsp;Always push APK to device and invoke Package Manager as separate steps.  
+**\-\-no-streaming**
+&nbsp;&nbsp;&nbsp;&nbsp;Always push APK to device and invoke Package Manager as separate steps.
 
-**\-\-streaming**  
-&nbsp;&nbsp;&nbsp;&nbsp;Force streaming APK directly into Package Manager.  
+**\-\-streaming**
+&nbsp;&nbsp;&nbsp;&nbsp;Force streaming APK directly into Package Manager.
 
-**\-\-fastdeploy**  
-&nbsp;&nbsp;&nbsp;&nbsp;Use fast deploy.  
+**\-\-fastdeploy**
+&nbsp;&nbsp;&nbsp;&nbsp;Use fast deploy.
 
-**-no-fastdeploy**  
-&nbsp;&nbsp;&nbsp;&nbsp;Prevent use of fast deploy.  
+**-no-fastdeploy**
+&nbsp;&nbsp;&nbsp;&nbsp;Prevent use of fast deploy.
 
-**-force-agent**  
-&nbsp;&nbsp;&nbsp;&nbsp;Force update of deployment agent when using fast deploy.  
+**-force-agent**
+&nbsp;&nbsp;&nbsp;&nbsp;Force update of deployment agent when using fast deploy.
 
-**-date-check-agent**  
-&nbsp;&nbsp;&nbsp;&nbsp;Update deployment agent when local version is newer and using fast deploy.  
+**-date-check-agent**
+&nbsp;&nbsp;&nbsp;&nbsp;Update deployment agent when local version is newer and using fast deploy.
 
-**\-\-version-check-agent**  
-&nbsp;&nbsp;&nbsp;&nbsp;Update deployment agent when local version has different version code and using fast deploy.  
+**\-\-version-check-agent**
+&nbsp;&nbsp;&nbsp;&nbsp;Update deployment agent when local version has different version code and using fast deploy.
 
-**\-\-local-agent**  
-&nbsp;&nbsp;&nbsp;&nbsp;Locate agent files from local source build (instead of SDK location). See also `adb shell pm help` for more options.  
+**\-\-local-agent**
+&nbsp;&nbsp;&nbsp;&nbsp;Locate agent files from local source build (instead of SDK location). See also `adb shell pm help` for more options.
 
-uninstall [**-k**] **APPLICATION_ID**   
+uninstall [**-k**] **APPLICATION_ID**
 &nbsp;&nbsp;&nbsp;&nbsp;Remove this **APPLICATION_ID** from the device.
 
 **-k**
@@ -259,121 +259,121 @@ uninstall [**-k**] **APPLICATION_ID**
 
 # DEBUGGING:
 
-bugreport [**PATH**]  
+bugreport [**PATH**]
 &nbsp;&nbsp;&nbsp;&nbsp;Write bugreport to given PATH [default=bugreport.zip]; if **PATH** is a directory, the bug report is saved in that directory. devices that don't support zipped bug reports output to stdout.
 
-jdwp  
+jdwp
 &nbsp;&nbsp;&nbsp;&nbsp;List pids of processes hosting a JDWP transport.
 
-logcat  
+logcat
 &nbsp;&nbsp;&nbsp;&nbsp;Show device log (logcat --help for more).
 
 
 # SECURITY:
 
-disable-verity  
+disable-verity
 &nbsp;&nbsp;&nbsp;&nbsp;Disable dm-verity checking on userdebug builds.
 
-enable-verity  
+enable-verity
 &nbsp;&nbsp;&nbsp;&nbsp;Re-enable dm-verity checking on userdebug builds.
 
-keygen **FILE**  
+keygen **FILE**
 &nbsp;&nbsp;&nbsp;&nbsp;Generate adb public/private key; private key stored in **FILE**.
 
 # SCRIPTING:
 
-wait-for [-**TRANSPORT**] -**STATE**...  
+wait-for [-**TRANSPORT**] -**STATE**...
 &nbsp;&nbsp;&nbsp;&nbsp; Wait for device to be in a given state.
 
-&nbsp;&nbsp;&nbsp;&nbsp;**STATE**: device, recovery, rescue, sideload, bootloader, or disconnect.  
+&nbsp;&nbsp;&nbsp;&nbsp;**STATE**: device, recovery, rescue, sideload, bootloader, or disconnect.
 &nbsp;&nbsp;&nbsp;&nbsp;**TRANSPORT**: **usb**, **local**, or **any** [default=**any**].
 
-get-state  
+get-state
 &nbsp;&nbsp;&nbsp;&nbsp;Print offline | bootloader | device.
 
-get-serialno  
+get-serialno
 &nbsp;&nbsp;&nbsp;&nbsp;Print **SERIAL_NUMBER**.
 
-get-devpath  
+get-devpath
 &nbsp;&nbsp;&nbsp;&nbsp;Print  **DEVICE_PATH**.
 
-remount [**-R**]  
+remount [**-R**]
 &nbsp;&nbsp;&nbsp;&nbsp;Remount partitions read-write.
 
-**-R**  
+**-R**
 &nbsp;&nbsp;&nbsp;&nbsp;Automatically reboot the device.
 
-reboot [**bootloader**|**recovery**|**sideload**|**sideload-auto-reboot**]  
-&nbsp;&nbsp;&nbsp;&nbsp;Reboot the device; defaults to booting system image but supports **bootloader** and **recovery** too. 
+reboot [**bootloader**|**recovery**|**sideload**|**sideload-auto-reboot**]
+&nbsp;&nbsp;&nbsp;&nbsp;Reboot the device; defaults to booting system image but supports **bootloader** and **recovery** too.
 
-**sideload**  
+**sideload**
 &nbsp;&nbsp;&nbsp;&nbsp;Reboots into recovery and automatically starts sideload mode.
 
-**sideload-auto-reboot**  
+**sideload-auto-reboot**
 &nbsp;&nbsp;&nbsp;&nbsp;Same as **sideload** but reboots after sideloading.
 
 
-sideload **OTAPACKAGE**  
+sideload **OTAPACKAGE**
 &nbsp;&nbsp;&nbsp;&nbsp;Sideload the given full OTA package **OTAPACKAGE**.
 
-root  
+root
 &nbsp;&nbsp;&nbsp;&nbsp;Restart adbd with root permissions.
 
-unroot  
+unroot
 &nbsp;&nbsp;&nbsp;&nbsp;Restart adbd without root permissions.
 
-usb  
+usb
 &nbsp;&nbsp;&nbsp;&nbsp;Restart adbd listening on USB.
 
-tcpip **PORT**  
+tcpip **PORT**
 &nbsp;&nbsp;&nbsp;&nbsp;Restart adbd listening on TCP on **PORT**.
 
 # INTERNAL DEBUGGING:
 
-start-server  
+start-server
 &nbsp;&nbsp;&nbsp;&nbsp;Ensure that there is a server running.
 
-kill-server  
+kill-server
 &nbsp;&nbsp;&nbsp;&nbsp;Kill the server if it is running.
 
-reconnect  
+reconnect
 &nbsp;&nbsp;&nbsp;&nbsp;Close connection from host side to force reconnect.
 
-reconnect device  
+reconnect device
 &nbsp;&nbsp;&nbsp;&nbsp;Close connection from device side to force reconnect.
 
-reconnect offline  
+reconnect offline
 &nbsp;&nbsp;&nbsp;&nbsp;Reset offline/unauthorized devices to force reconnect.
 
 # USB:
 
 Only valid when running with libusb backend.
 
-attach **SERIAL**  
+attach **SERIAL**
 &nbsp;&nbsp;&nbsp;&nbsp;Attach a detached USB device identified by its **SERIAL** number.
 
-detach **SERIAL**  
+detach **SERIAL**
 &nbsp;&nbsp;&nbsp;&nbsp;Detach from a USB device identified by its **SERIAL** to allow use by other processes.
 
 
 # ENVIRONMENT VARIABLES
 
-$ADB_TRACE  
+$ADB_TRACE
 &nbsp;&nbsp;&nbsp;&nbsp;Comma (or space) separated list of debug info to log: all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp.
 
-$ADB_VENDOR_KEYS  
+$ADB_VENDOR_KEYS
 &nbsp;&nbsp;&nbsp;&nbsp;Colon-separated list of keys (files or directories).
 
-$ANDROID_SERIAL  
+$ANDROID_SERIAL
 &nbsp;&nbsp;&nbsp;&nbsp;Serial number to connect to (see -s).
 
-$ANDROID_LOG_TAGS  
+$ANDROID_LOG_TAGS
 &nbsp;&nbsp;&nbsp;&nbsp;Tags to be used by logcat (see logcat --help).
 
-$ADB_LOCAL_TRANSPORT_MAX_PORT  
+$ADB_LOCAL_TRANSPORT_MAX_PORT
 &nbsp;&nbsp;&nbsp;&nbsp;Max emulator scan port (default 5585, 16 emulators).
 
-$ADB_MDNS_AUTO_CONNECT  
+$ADB_MDNS_AUTO_CONNECT
 &nbsp;&nbsp;&nbsp;&nbsp;Comma-separated list of mdns services to allow auto-connect (default adb-tls-connect).
 
 $ADB_MDNS_OPENSCREEN
