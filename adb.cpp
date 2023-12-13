@@ -1326,9 +1326,14 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
 
     // return a list of all connected devices
     if (service == "devices" || service == "devices-l") {
-        bool long_listing = service == "devices-l";
+        TrackerOutputType output_type;
+        if (service == "devices-l") {
+            output_type = LONG_TEXT;
+        } else {
+            output_type = SHORT_TEXT;
+        }
         D("Getting device list...");
-        std::string device_list = list_transports(long_listing);
+        std::string device_list = list_transports(output_type);
         D("Sending device list...");
         SendOkay(reply_fd, device_list);
         return HostRequestResult::Handled;
