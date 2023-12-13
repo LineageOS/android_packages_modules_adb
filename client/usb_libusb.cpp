@@ -153,9 +153,6 @@ struct LibusbConnection : public Connection {
     bool MaybeCleanup(ReadBlock* read_block) REQUIRES(read_mutex_) {
         CHECK(read_block);
         CHECK(read_block->transfer);
-        if (read_block->transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-            CHECK(terminated_);
-        }
 
         if (terminated_) {
             Cleanup(read_block);
@@ -793,7 +790,6 @@ struct LibusbConnection : public Connection {
     size_t zero_mask_ = 0;
 };
 
-static libusb_hotplug_callback_handle hotplug_handle;
 static std::mutex usb_handles_mutex [[clang::no_destroy]];
 static std::unordered_map<libusb_device*, std::weak_ptr<LibusbConnection>> usb_handles
         [[clang::no_destroy]] GUARDED_BY(usb_handles_mutex);
@@ -966,7 +962,7 @@ void usb_init() {
             static_cast<libusb_hotplug_event>(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
                                               LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
             LIBUSB_HOTPLUG_ENUMERATE, LIBUSB_HOTPLUG_MATCH_ANY, LIBUSB_HOTPLUG_MATCH_ANY,
-            LIBUSB_CLASS_PER_INTERFACE, hotplug_callback, nullptr, &hotplug_handle);
+            LIBUSB_CLASS_PER_INTERFACE, hotplug_callback, nullptr, nullptr);
 
     if (rc != LIBUSB_SUCCESS) {
         LOG(FATAL) << "failed to register libusb hotplug callback";
