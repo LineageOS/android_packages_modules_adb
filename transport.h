@@ -136,6 +136,20 @@ struct Connection {
     atransport* transport_ = nullptr;
 
     static std::unique_ptr<Connection> FromFd(unique_fd fd);
+
+    enum ConnectionSpeed {
+        UNKNOWN = 0,
+        USB1_0 = 1,
+        USB2_0_FULL = 12,
+        USB2_0_HIGH = 480,
+        USB3_0 = 5000,
+        USB3_1 = 10000,
+        USB3_2 = 20000,
+        USB4_0 = 40000,
+    };
+
+    virtual ConnectionSpeed NegotiatedSpeedMbps() { return UNKNOWN; }
+    virtual ConnectionSpeed MaxSpeedMbps() { return UNKNOWN; }
 };
 
 // Abstraction for a blocking packet transport.
@@ -474,7 +488,6 @@ bool iterate_transports(std::function<bool(const atransport*)> fn);
 
 void init_reconnect_handler(void);
 void init_mdns_transport_discovery(void);
-std::string list_transports(bool long_listing);
 
 #if ADB_HOST
 atransport* find_transport(const char* serial);
@@ -519,7 +532,11 @@ void close_usb_devices(std::function<bool(const atransport*)> predicate, bool re
 
 void send_packet(apacket* p, atransport* t);
 
-asocket* create_device_tracker(bool long_output);
+#if ADB_HOST
+enum TrackerOutputType { SHORT_TEXT, LONG_TEXT, PROTOBUF, TEXT_PROTOBUF };
+asocket* create_device_tracker(TrackerOutputType type);
+std::string list_transports(TrackerOutputType type);
+#endif
 
 #if !ADB_HOST
 unique_fd adb_listen(std::string_view addr, std::string* error);

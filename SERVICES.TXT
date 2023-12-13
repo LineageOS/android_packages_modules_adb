@@ -21,12 +21,14 @@ host:devices-l
     the connection is closed
 
 host:track-devices
-    This is a variant of host:devices which doesn't close the
+host:track-devices-proto-binary
+host:track-devices-proto-text
+    These are variants of host:devices which doesn't close the
     connection. Instead, a new device list description is sent
     each time a device is added/removed or the state of a given
-    device changes (hex4 + content). This allows tools like DDMS
-    to track the state of connected devices in real-time without
-    polling the server repeatedly.
+    device changes.
+    Variant [-proto-binary] is binary protobuf format.
+    Variant [-proto-text] is text protobuf format.
 
 host:emulator:<port>
     This is a special query that is sent to the ADB server when a

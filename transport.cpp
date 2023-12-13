@@ -56,7 +56,9 @@
 #include "sysdeps/chrono.h"
 
 #if ADB_HOST
+#include <google/protobuf/text_format.h>
 #include "client/usb.h"
+#include "devices.pb.h"
 #endif
 
 using namespace adb::crypto;
@@ -95,6 +97,7 @@ const char* const kFeatureSendRecv2DryRunSend = "sendrecv_v2_dry_run_send";
 const char* const kFeatureDelayedAck = "delayed_ack";
 // TODO(joshuaduong): Bump to v2 when openscreen discovery is enabled by default
 const char* const kFeatureOpenscreenMdns = "openscreen_mdns";
+const char* const kFeatureDeviceTrackerProtoFormat = "devicetracker_proto_format";
 
 namespace {
 
@@ -602,7 +605,7 @@ void kick_transport(atransport* t, bool reset) {
 struct device_tracker {
     asocket socket;
     bool update_needed = false;
-    bool long_output = false;
+    TrackerOutputType output_type = SHORT_TEXT;
     device_tracker* next = nullptr;
 };
 
@@ -662,11 +665,11 @@ static void device_tracker_ready(asocket* socket) {
     // for the first time, even if no update occurred.
     if (tracker->update_needed) {
         tracker->update_needed = false;
-        device_tracker_send(tracker, list_transports(tracker->long_output));
+        device_tracker_send(tracker, list_transports(tracker->output_type));
     }
 }
 
-asocket* create_device_tracker(bool long_output) {
+asocket* create_device_tracker(TrackerOutputType output_type) {
     device_tracker* tracker = new device_tracker();
     if (tracker == nullptr) LOG(FATAL) << "cannot allocate device tracker";
 
@@ -676,7 +679,7 @@ asocket* create_device_tracker(bool long_output) {
     tracker->socket.ready = device_tracker_ready;
     tracker->socket.close = device_tracker_close;
     tracker->update_needed = true;
-    tracker->long_output = long_output;
+    tracker->output_type = output_type;
 
     tracker->next = device_tracker_list;
     device_tracker_list = tracker;
@@ -709,7 +712,7 @@ void update_transports() {
     while (tracker != nullptr) {
         device_tracker* next = tracker->next;
         // This may destroy the tracker if the connection is closed.
-        device_tracker_send(tracker, list_transports(tracker->long_output));
+        device_tracker_send(tracker, list_transports(tracker->output_type));
         tracker = next;
     }
 }
@@ -1202,6 +1205,7 @@ const FeatureSet& supported_features() {
             kFeatureSendRecv2Zstd,
             kFeatureSendRecv2DryRunSend,
             kFeatureOpenscreenMdns,
+            kFeatureDeviceTrackerProtoFormat,
         };
         // clang-format on
 
@@ -1316,6 +1320,63 @@ static std::string sanitize(std::string str, bool alphanumeric) {
     return str;
 }
 
+static adb::proto::ConnectionState adbStateFromProto(ConnectionState state) {
+    switch (state) {
+        case kCsConnecting:
+            return adb::proto::ConnectionState::CONNECTING;
+        case kCsAuthorizing:
+            return adb::proto::ConnectionState::AUTHORIZING;
+        case kCsUnauthorized:
+            return adb::proto::ConnectionState::UNAUTHORIZED;
+        case kCsNoPerm:
+            return adb::proto::ConnectionState::NOPERMISSION;
+        case kCsDetached:
+            return adb::proto::ConnectionState::DETACHED;
+        case kCsOffline:
+            return adb::proto::ConnectionState::OFFLINE;
+        case kCsBootloader:
+            return adb::proto::ConnectionState::BOOTLOADER;
+        case kCsDevice:
+            return adb::proto::ConnectionState::DEVICE;
+        case kCsHost:
+            return adb::proto::ConnectionState::HOST;
+        case kCsRecovery:
+            return adb::proto::ConnectionState::RECOVERY;
+        case kCsSideload:
+            return adb::proto::ConnectionState::SIDELOAD;
+        case kCsRescue:
+            return adb::proto::ConnectionState::RESCUE;
+        case kCsAny:
+            return adb::proto::ConnectionState::ANY;
+    }
+}
+
+static std::string transportListToProto(const std::list<atransport*>& sorted_transport_list,
+                                        bool text_version) {
+    adb::proto::Devices devices;
+    for (const auto& t : sorted_transport_list) {
+        auto* device = devices.add_device();
+        device->set_serial(t->serial.c_str());
+        device->set_connection_type(t->type == kTransportUsb ? adb::proto::ConnectionType::USB
+                                                             : adb::proto::ConnectionType::SOCKET);
+        device->set_state(adbStateFromProto(t->GetConnectionState()));
+        device->set_bus_address(sanitize(t->devpath, false));
+        device->set_product(sanitize(t->product, false));
+        device->set_model(sanitize(t->model, true));
+        device->set_device(sanitize(t->device, false));
+        device->set_max_speed(t->connection()->MaxSpeedMbps());
+        device->set_negotiated_speed(t->connection()->NegotiatedSpeedMbps());
+    }
+
+    std::string proto;
+    if (text_version) {
+        google::protobuf::TextFormat::PrintToString(devices, &proto);
+    } else {
+        devices.SerializeToString(&proto);
+    }
+    return proto;
+}
+
 static void append_transport_info(std::string* result, const char* key, const std::string& value,
                                   bool alphanumeric) {
     if (value.empty()) {
@@ -1354,7 +1415,16 @@ static void append_transport(const atransport* t, std::string* result, bool long
     *result += '\n';
 }
 
-std::string list_transports(bool long_listing) {
+static std::string transportListToText(const std::list<atransport*>& sorted_transport_list,
+                                       bool long_listing) {
+    std::string result;
+    for (const auto& t : sorted_transport_list) {
+        append_transport(t, &result, long_listing);
+    }
+    return result;
+}
+
+std::string list_transports(TrackerOutputType outputType) {
     std::lock_guard<std::recursive_mutex> lock(transport_lock);
 
     auto sorted_transport_list = transport_list;
@@ -1365,11 +1435,16 @@ std::string list_transports(bool long_listing) {
         return x->serial < y->serial;
     });
 
-    std::string result;
-    for (const auto& t : sorted_transport_list) {
-        append_transport(t, &result, long_listing);
+    switch (outputType) {
+        case SHORT_TEXT:
+        case LONG_TEXT: {
+            return transportListToText(sorted_transport_list, outputType == LONG_TEXT);
+        }
+        case PROTOBUF:
+        case TEXT_PROTOBUF: {
+            return transportListToProto(sorted_transport_list, outputType == TEXT_PROTOBUF);
+        }
     }
-    return result;
 }
 
 void close_usb_devices(std::function<bool(const atransport*)> predicate, bool reset) {

@@ -143,3 +143,47 @@ cc_library_host_static {
         type: "full",
     },
 }
+
+cc_defaults {
+    name: "libdevices_protos_defaults",
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Wthread-safety",
+        "-Werror",
+    ],
+
+    compile_multilib: "both",
+
+    srcs: [
+        "devices.proto",
+    ],
+    target: {
+        windows: {
+            compile_multilib: "first",
+            enabled: true,
+        },
+    },
+
+    visibility: [
+        "//packages/modules/adb:__subpackages__",
+    ],
+
+    stl: "libc++_static",
+
+    apex_available: [
+        "com.android.adbd",
+        "test_com.android.adbd",
+    ],
+}
+
+cc_library_host_static {
+    name: "libdevices_protos",
+    defaults: ["libdevices_protos_defaults"],
+
+    proto: {
+        export_proto_headers: true,
+        type: "full",
+    },
+}
+
