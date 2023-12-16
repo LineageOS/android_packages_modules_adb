@@ -250,9 +250,13 @@ static void wait_service(unique_fd fd, std::string serial, TransportId transport
 asocket* host_service_to_socket(std::string_view name, std::string_view serial,
                                 TransportId transport_id) {
     if (name == "track-devices") {
-        return create_device_tracker(false);
+        return create_device_tracker(SHORT_TEXT);
     } else if (name == "track-devices-l") {
-        return create_device_tracker(true);
+        return create_device_tracker(LONG_TEXT);
+    } else if (name == "track-devices-proto-binary") {
+        return create_device_tracker(PROTOBUF);
+    } else if (name == "track-devices-proto-text") {
+        return create_device_tracker(TEXT_PROTOBUF);
     } else if (android::base::ConsumePrefix(&name, "wait-for-")) {
         std::string spec(name);
         unique_fd fd =

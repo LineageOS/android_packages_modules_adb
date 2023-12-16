@@ -153,9 +153,6 @@ struct LibusbConnection : public Connection {
     bool MaybeCleanup(ReadBlock* read_block) REQUIRES(read_mutex_) {
         CHECK(read_block);
         CHECK(read_block->transfer);
-        if (read_block->transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-            CHECK(terminated_);
-        }
 
         if (terminated_) {
             Cleanup(read_block);
@@ -493,6 +490,74 @@ struct LibusbConnection : public Connection {
         return serial;
     }
 
+    // libusb gives us an int which is a value from 'enum libusb_speed'
+    static ConnectionSpeed ToConnectionSpeed(int speed) {
+        switch (speed) {
+            case LIBUSB_SPEED_LOW:
+                return USB1_0;
+            case LIBUSB_SPEED_FULL:
+                return USB2_0_FULL;
+            case LIBUSB_SPEED_HIGH:
+                return USB2_0_HIGH;
+            case LIBUSB_SPEED_SUPER:
+                return USB3_0;
+            case LIBUSB_SPEED_SUPER_PLUS:
+                return USB3_1;
+            case LIBUSB_SPEED_UNKNOWN:
+            default:
+                return UNKNOWN;
+        }
+    }
+
+    // libusb gives us a bitfield made of 'enum libusb_supported_speed' values
+    static ConnectionSpeed ExtractMaxSpeed(uint16_t wSpeedSupported) {
+        if (wSpeedSupported == 0) {
+            return UNKNOWN;
+        }
+
+        int msb = 0;
+        while (wSpeedSupported >>= 1) {
+            msb++;
+        }
+
+        switch (1 << msb) {
+            case LIBUSB_LOW_SPEED_OPERATION:
+                return USB1_0;
+            case LIBUSB_FULL_SPEED_OPERATION:
+                return USB2_0_FULL;
+            case LIBUSB_HIGH_SPEED_OPERATION:
+                return USB2_0_HIGH;
+            case LIBUSB_SUPER_SPEED_OPERATION:
+                return USB3_0;
+            default:
+                return UNKNOWN;
+        }
+    }
+
+    void RetrieveSpeeds() {
+        negotiated_speed_ = ToConnectionSpeed(libusb_get_device_speed(device_.get()));
+
+        // The set of supported speed is in a SuperSpeed capability
+        struct libusb_bos_descriptor* bos = nullptr;
+        if (!libusb_get_bos_descriptor(device_handle_.get(), &bos)) {
+            for (int i = 0; i < bos->bNumDeviceCaps; i++) {
+                if (bos->dev_capability[i]->bDevCapabilityType !=
+                    LIBUSB_BT_SS_USB_DEVICE_CAPABILITY) {
+                    continue;
+                }
+
+                libusb_ss_usb_device_capability_descriptor* ss_usb_device_cap = nullptr;
+                int r = libusb_get_ss_usb_device_capability_descriptor(
+                        nullptr, bos->dev_capability[i], &ss_usb_device_cap);
+                if (!r) {
+                    max_speed_ = ExtractMaxSpeed(ss_usb_device_cap->wSpeedSupported);
+                    libusb_free_ss_usb_device_capability_descriptor(ss_usb_device_cap);
+                }
+            }
+            libusb_free_bos_descriptor(bos);
+        }
+    }
+
     bool OpenDevice(std::string* error) {
         if (device_handle_) {
             LOG_ERR(error, "device already open");
@@ -548,6 +613,7 @@ struct LibusbConnection : public Connection {
             }
         }
 
+        RetrieveSpeeds();
         return true;
     }
 
@@ -766,6 +832,10 @@ struct LibusbConnection : public Connection {
         return connection;
     }
 
+    virtual ConnectionSpeed MaxSpeedMbps() override final { return max_speed_; }
+
+    virtual ConnectionSpeed NegotiatedSpeedMbps() override final { return negotiated_speed_; }
+
     unique_device device_;
     unique_device_handle device_handle_;
     std::string device_address_;
@@ -791,9 +861,11 @@ struct LibusbConnection : public Connection {
     std::condition_variable destruction_cv_;
 
     size_t zero_mask_ = 0;
+
+    ConnectionSpeed negotiated_speed_ = UNKNOWN;
+    ConnectionSpeed max_speed_ = UNKNOWN;
 };
 
-static libusb_hotplug_callback_handle hotplug_handle;
 static std::mutex usb_handles_mutex [[clang::no_destroy]];
 static std::unordered_map<libusb_device*, std::weak_ptr<LibusbConnection>> usb_handles
         [[clang::no_destroy]] GUARDED_BY(usb_handles_mutex);
@@ -966,7 +1038,7 @@ void usb_init() {
             static_cast<libusb_hotplug_event>(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
                                               LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
             LIBUSB_HOTPLUG_ENUMERATE, LIBUSB_HOTPLUG_MATCH_ANY, LIBUSB_HOTPLUG_MATCH_ANY,
-            LIBUSB_CLASS_PER_INTERFACE, hotplug_callback, nullptr, &hotplug_handle);
+            LIBUSB_CLASS_PER_INTERFACE, hotplug_callback, nullptr, nullptr);
 
     if (rc != LIBUSB_SUCCESS) {
         LOG(FATAL) << "failed to register libusb hotplug callback";
