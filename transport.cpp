@@ -1364,8 +1364,9 @@ static std::string transportListToProto(const std::list<atransport*>& sorted_tra
         device->set_product(sanitize(t->product, false));
         device->set_model(sanitize(t->model, true));
         device->set_device(sanitize(t->device, false));
-        device->set_max_speed(t->connection()->MaxSpeedMbps());
         device->set_negotiated_speed(t->connection()->NegotiatedSpeedMbps());
+        device->set_max_speed(t->connection()->MaxSpeedMbps());
+        device->set_transport_id(t->id);
     }
 
     std::string proto;
