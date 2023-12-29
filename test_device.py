@@ -1847,6 +1847,7 @@ class DevicesListing(DeviceTest):
         self.assertFalse(device.device == "")
         self.assertTrue(device.negotiated_speed == int(device.negotiated_speed))
         self.assertTrue(device.max_speed == int(device.max_speed))
+        self.assertTrue(device.transport_id == int(device.transport_id))
 
 def main():
     random.seed(0)
