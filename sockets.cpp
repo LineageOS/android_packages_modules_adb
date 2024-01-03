@@ -149,9 +149,9 @@ static SocketFlushResult local_socket_flush_incoming(asocket* s) {
             // Deferred acks are available.
             send_ready(s->id, s->peer->id, s->transport, bytes_flushed);
         } else {
-            // Deferred acks aren't available, we should ask for more data as long as we've made any
-            // progress.
-            if (bytes_flushed != 0) {
+            // Deferred acks aren't available, we should ask for more data as long as we have less
+            // than a full packet left in our queue.
+            if (bytes_flushed != 0 && s->packet_queue.size() < MAX_PAYLOAD) {
                 send_ready(s->id, s->peer->id, s->transport, 0);
             }
         }
