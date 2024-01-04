@@ -254,7 +254,7 @@ track-app:
     a new messeage is sent (this service never stops).
 
     Each message features a hex4 length prefix followed by a
-    human-readable protocol buffer. e.g.:
+    binary protocol buffer. e.g.:
 
     process {
       pid: 18595
