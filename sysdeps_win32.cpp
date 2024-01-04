@@ -3089,13 +3089,11 @@ Process adb_launch_process(std::string_view executable, std::vector<std::string>
 }
 
 // The SetThreadDescription API was brought in version 1607 of Windows 10.
-typedef HRESULT(WINAPI* SetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription);
-
 // Based on PlatformThread::SetName() from
 // https://cs.chromium.org/chromium/src/base/threading/platform_thread_win.cc
 int adb_thread_setname(const std::string& name) {
     // The SetThreadDescription API works even if no debugger is attached.
-    auto set_thread_description_func = reinterpret_cast<SetThreadDescription>(
+    auto set_thread_description_func = reinterpret_cast<HRESULT(WINAPI *)(HANDLE, PCWSTR)>(
             ::GetProcAddress(::GetModuleHandleW(L"Kernel32.dll"), "SetThreadDescription"));
     if (set_thread_description_func) {
         std::wstring name_wide;
