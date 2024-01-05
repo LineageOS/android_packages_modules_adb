@@ -493,12 +493,22 @@ class AdbUdpSocket : public UdpSocket {
         // This is effectively a boolean passed to setsockopt() to allow a future
         // bind() on the same socket to succeed, even if the address is already in
         // use. This is pretty much universally the desired behavior.
-        const int reuse_addr = 1;
-        if (adb_setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) == -1) {
+        const int reuse = 1;
+        if (adb_setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
             OnError(Error::Code::kSocketOptionSettingFailure);
             LOG(WARNING) << "Failed to set SO_REUSEADDR";
             return;
         }
+
+#if defined(__APPLE__)
+        // On Mac, SO_REUSEADDR is not enough to allow a bind() on a reusable multicast socket.
+        // We need to also set the option SO_REUSEPORT.
+        if (adb_setsockopt(fd_, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1) {
+            OnError(Error::Code::kSocketOptionSettingFailure);
+            LOG(WARNING) << "Failed to set SO_REUSEPORT";
+            return;
+        }
+#endif
 
         switch (local_endpoint_.address.version()) {
             case UdpSocket::Version::kV4: {
