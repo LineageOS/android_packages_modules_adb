@@ -18,6 +18,7 @@
 
 #include "adb_mdns.h"
 
+#include <algorithm>
 #include <set>
 
 #include <android-base/stringprintf.h>
