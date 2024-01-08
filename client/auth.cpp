@@ -260,7 +260,7 @@ std::deque<std::shared_ptr<RSA>> adb_auth_get_private_keys() {
 static std::string adb_auth_sign(RSA* key, const char* token, size_t token_size) {
     if (token_size != TOKEN_SIZE) {
         D("Unexpected token size %zd", token_size);
-        return nullptr;
+        return std::string();
     }
 
     std::string result;
