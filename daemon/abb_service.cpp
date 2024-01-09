@@ -24,9 +24,6 @@
 
 namespace {
 
-struct AbbProcess;
-static auto& abbp = *new std::unique_ptr<AbbProcess>(std::make_unique<AbbProcess>());
-
 struct AbbProcess {
     unique_fd sendCommand(std::string_view command);
 
@@ -83,8 +80,10 @@ unique_fd AbbProcess::startAbbProcess(unique_fd* error_fd) {
                            kErrorProtocol, error_fd);
 }
 
+static auto& abbp = *new AbbProcess;
+
 }  // namespace
 
 unique_fd execute_abb_command(std::string_view command) {
-    return abbp->sendCommand(command);
+    return abbp.sendCommand(command);
 }
