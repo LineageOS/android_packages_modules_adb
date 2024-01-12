@@ -1028,8 +1028,11 @@ namespace libusb {
 void usb_init() {
     VLOG(USB) << "initializing libusb...";
     int rc = libusb_init(nullptr);
-    if (rc != 0) {
-        LOG(FATAL) << "failed to initialize libusb: " << libusb_error_name(rc);
+    if (rc !=
+        0) {  // https://android.googlesource.com/platform/external/libusb/+/refs/heads/upstream-master/libusb/os/linux_usbfs.c#298
+              // for context.
+        LOG(WARNING) << "failed to initialize libusb: " << libusb_error_name(rc);
+        return;
     }
 
     // Register the hotplug callback.
