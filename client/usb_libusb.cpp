@@ -1028,9 +1028,7 @@ namespace libusb {
 void usb_init() {
     VLOG(USB) << "initializing libusb...";
     int rc = libusb_init(nullptr);
-    if (rc !=
-        0) {  // https://android.googlesource.com/platform/external/libusb/+/refs/heads/upstream-master/libusb/os/linux_usbfs.c#298
-              // for context.
+    if (rc != 0) {
         LOG(WARNING) << "failed to initialize libusb: " << libusb_error_name(rc);
         return;
     }
