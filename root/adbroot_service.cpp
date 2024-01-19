@@ -19,6 +19,7 @@
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android-base/strings.h>
+#include <cutils/multiuser.h>
 #include <private/android_filesystem_config.h>
 
 #include "adbroot_service.h"
@@ -62,7 +63,8 @@ void ADBRootService::Register() {
 
 ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
     uid_t uid = AIBinder_getCallingUid();
-    if (uid != AID_SYSTEM && uid != AID_SHELL) {
+    appid_t appid = multiuser_get_app_id(uid);
+    if (appid != AID_SYSTEM && uid != AID_SHELL) {
         return SecurityException("Caller must be system or shell");
     }
 
@@ -73,7 +75,8 @@ ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
 
 ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
     uid_t uid = AIBinder_getCallingUid();
-    if (uid != AID_SYSTEM) {
+    appid_t appid = multiuser_get_app_id(uid);
+    if (appid != AID_SYSTEM) {
         return SecurityException("Caller must be system");
     }
 
@@ -95,7 +98,8 @@ ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
 
 ndk::ScopedAStatus ADBRootService::getEnabled(bool* _aidl_return) {
     uid_t uid = AIBinder_getCallingUid();
-    if (uid != AID_SYSTEM && uid != AID_SHELL) {
+    appid_t appid = multiuser_get_app_id(uid);
+    if (appid != AID_SYSTEM && uid != AID_SHELL) {
         return SecurityException("Caller must be system or shell");
     }
 
