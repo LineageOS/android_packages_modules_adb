@@ -15,13 +15,19 @@
  */
 
 #include <android/binder_manager.h>
+#include <android/content/pm/IPackageManagerNative.h>
 #include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android-base/strings.h>
+#include <binder/IBinder.h>
+#include <binder/IServiceManager.h>
+#include <cutils/multiuser.h>
 #include <private/android_filesystem_config.h>
 
 #include "adbroot_service.h"
+
+#define AUTOMOTIVE_ADMIN_ID 10
 
 namespace {
 const std::string kStoragePath = "/data/adbroot/";
@@ -33,6 +39,35 @@ static ndk::ScopedAStatus SecurityException(const std::string& msg) {
 }
 }  // anonymous namespace
 
+namespace android {
+static bool isAutomotive() {
+    sp<IServiceManager> serviceManager = defaultServiceManager();
+    if (serviceManager.get() == nullptr) {
+        LOG(ERROR) << "Unable to access native ServiceManager";
+        return false;
+    }
+
+    sp<content::pm::IPackageManagerNative> packageManager;
+    sp<IBinder> binder = serviceManager->waitForService(String16("package_native"));
+    packageManager = interface_cast<content::pm::IPackageManagerNative>(binder);
+    if (packageManager == nullptr) {
+        LOG(ERROR) << "Unable to access native PackageManager";
+        return false;
+    }
+
+    bool isAutomotive = false;
+    binder::Status status =
+        packageManager->hasSystemFeature(String16("android.hardware.type.automotive"), 0,
+                                         &isAutomotive);
+    if (!status.isOk()) {
+        LOG(ERROR) << "Calling hasSystemFeature failed: " << status.exceptionMessage().c_str();
+        return false;
+    }
+
+    return isAutomotive;
+}
+}  // namespace android
+
 namespace aidl {
 namespace android {
 namespace adbroot {
@@ -42,6 +77,7 @@ using ::android::base::ReadFileToString;
 using ::android::base::SetProperty;
 using ::android::base::Trim;
 using ::android::base::WriteStringToFile;
+using ::android::isAutomotive;
 
 ADBRootService::ADBRootService() : enabled_(false) {
     std::string buf;
@@ -62,7 +98,11 @@ void ADBRootService::Register() {
 
 ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
     uid_t uid = AIBinder_getCallingUid();
-    if (uid != AID_SYSTEM && uid != AID_SHELL) {
+    appid_t appid = multiuser_get_app_id(uid);
+    userid_t userid = multiuser_get_user_id(uid);
+
+    if (uid != AID_SYSTEM && uid != AID_SHELL &&
+            (appid != AID_SYSTEM || userid != AUTOMOTIVE_ADMIN_ID || !isAutomotive())) {
         return SecurityException("Caller must be system or shell");
     }
 
@@ -73,7 +113,11 @@ ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
 
 ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
     uid_t uid = AIBinder_getCallingUid();
-    if (uid != AID_SYSTEM) {
+    appid_t appid = multiuser_get_app_id(uid);
+    userid_t userid = multiuser_get_user_id(uid);
+
+    if (uid != AID_SYSTEM &&
+            (appid != AID_SYSTEM || userid != AUTOMOTIVE_ADMIN_ID || !isAutomotive())) {
         return SecurityException("Caller must be system");
     }
 
@@ -95,7 +139,11 @@ ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
 
 ndk::ScopedAStatus ADBRootService::getEnabled(bool* _aidl_return) {
     uid_t uid = AIBinder_getCallingUid();
-    if (uid != AID_SYSTEM && uid != AID_SHELL) {
+    appid_t appid = multiuser_get_app_id(uid);
+    userid_t userid = multiuser_get_user_id(uid);
+
+    if (uid != AID_SYSTEM && uid != AID_SHELL &&
+            (appid != AID_SYSTEM || userid != AUTOMOTIVE_ADMIN_ID || !isAutomotive())) {
         return SecurityException("Caller must be system or shell");
     }
 
