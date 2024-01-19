@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f62c8717_61995379",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2024-01-19T23:58:41Z",
+      "side": 1,
+      "message": "@Luca, any other idea here? Luk suggested to try AIBinder_getCallingSid() and check if ret of that !\u003d null and equals u:r:system_app:s0. The problem is that in the device where I tested it runs kernel 4.9 and possibly it doesn\u0027t support that call since it returns null (https://android.googlesource.com/platform/frameworks/native/+/refs/heads/main/libs/binder/ndk/include_platform/android/binder_ibinder_platform.h#38).",
+      "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
