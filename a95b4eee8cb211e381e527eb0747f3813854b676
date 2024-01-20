@@ -51,6 +51,24 @@
       "parentUuid": "1475a758_b1807900",
       "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f1abd885_7f8169f3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2024-01-20T11:14:06Z",
+      "side": 1,
+      "message": "we can start by checking if we\u0027re automotive\n\n\u0027\nstatic bool isAutomotive() {\n    sp\u003cIServiceManager\u003e serviceManager \u003d defaultServiceManager();\n    if (serviceManager.get() \u003d\u003d nullptr) {\n        ALOGE(\"%s: unable to access native ServiceManager\", __func__);\n        return false;\n    }\n\n    sp\u003ccontent::pm::IPackageManagerNative\u003e packageManager;\n    sp\u003cIBinder\u003e binder \u003d serviceManager-\u003ewaitForService(String16(\"package_native\"));\n    packageManager \u003d interface_cast\u003ccontent::pm::IPackageManagerNative\u003e(binder);\n    if (packageManager \u003d\u003d nullptr) {\n        ALOGE(\"%s: unable to access native PackageManager\", __func__);\n        return false;\n    }\n\n    bool isAutomotive \u003d false;\n    binder::Status status \u003d\n        packageManager-\u003ehasSystemFeature(String16(\"android.hardware.type.automotive\"), 0,\n                                         \u0026isAutomotive);\n    if (!status.isOk()) {\n        ALOGE(\"%s: hasSystemFeature failed: %s\", __func__, status.exceptionMessage().c_str());\n        return false;\n    }\n\n    return isAutomotive;\n}\n\u0027\n\n\u0027\nuserid_t multiuser_get_user_id(uid_t uid) {\n    return uid / AID_USER_OFFSET;\n}\n\u0027\n\n#define AUTOMOTIVE_ADMIN_ID 10\n\nif multiuser_get_user_id(uid) \u003d\u003d AUTOMOTIVE_ADMIN_ID \u0026\u0026 isAutomotive() then allow?",
+      "parentUuid": "f62c8717_61995379",
+      "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
