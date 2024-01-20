@@ -69,6 +69,24 @@
       "parentUuid": "f62c8717_61995379",
       "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8225d8a4_b41a44a1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2024-01-20T11:19:16Z",
+      "side": 1,
+      "message": "Mhh, looking at it it looks like you should use `multiuser_get_app_id(uid)` from `\u003ccutils/multiuser.h\u003e`, you should be able to get a known service ID, but not sure if this would allow a secondary user on a regular device to control adb_root",
+      "parentUuid": "5e820f5e_21ee38e8",
+      "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
