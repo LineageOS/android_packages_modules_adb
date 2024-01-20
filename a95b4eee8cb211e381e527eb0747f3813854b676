@@ -87,6 +87,24 @@
       "parentUuid": "5e820f5e_21ee38e8",
       "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "15b1e255_119bc928",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2024-01-20T11:20:34Z",
+      "side": 1,
+      "message": "caller is supposed to make sure that user is admin user, so it\u0027s ok?",
+      "parentUuid": "8225d8a4_b41a44a1",
+      "revId": "a95b4eee8cb211e381e527eb0747f3813854b676",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
