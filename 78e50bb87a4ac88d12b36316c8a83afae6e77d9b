@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "d356a5dc_596263a9",
+        "filename": "root/adbroot_service.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2024-01-21T19:09:23Z",
+      "side": 1,
+      "message": "Borrowed from https://cs.android.com/android/platform/superproject/main/+/main:frameworks/native/services/sensorservice/SensorService.cpp;l\u003d134",
+      "revId": "78e50bb87a4ac88d12b36316c8a83afae6e77d9b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "da517d85_cdf10061",
         "filename": "root/adbroot_service.cpp",
         "patchSetId": 1
