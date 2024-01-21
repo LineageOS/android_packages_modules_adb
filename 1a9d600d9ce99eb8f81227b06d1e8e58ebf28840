@@ -39,6 +39,30 @@
       },
       "revId": "1a9d600d9ce99eb8f81227b06d1e8e58ebf28840",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "826c59af_49144c62",
+        "filename": "root/adbroot_service.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2024-01-21T19:39:54Z",
+      "side": 1,
+      "message": "rather than inclined at this point I\u0027d do\nbool allowed \u003d uid \u003d\u003d .. || uid \u003d\u003d ..\nbool allowed_auto \u003d appid \u003d .. \u0026\u0026 automotive()\n\nif (allowed || allowed_auto)\n\ncompiler should be smart enough\nfeel free to make it look however you want",
+      "parentUuid": "899ef7c2_c9002b37",
+      "range": {
+        "startLine": 106,
+        "startChar": 9,
+        "endLine": 106,
+        "endChar": 19
+      },
+      "revId": "1a9d600d9ce99eb8f81227b06d1e8e58ebf28840",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
