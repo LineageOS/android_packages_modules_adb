@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "17c1a604_ae01fd83",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2024-01-21T23:18:51Z",
+      "side": 1,
+      "message": "Looks like user flags aren\u0027t exposed to NDK, we can only hope car will never get stolen :P",
+      "revId": "b085bcdd3d96682d1f1452f88bdb7e7e6f7a9d91",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
