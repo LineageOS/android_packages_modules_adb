@@ -46,6 +46,30 @@
       },
       "revId": "ef22c8c1105a5e6f32866d2be3bed8904482df9b",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "67e3d7fd_490dbf55",
+        "filename": "root/adbroot_service.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2024-01-21T19:58:46Z",
+      "side": 1,
+      "message": "I need to try running SetupWizard and see how it behaves.",
+      "parentUuid": "08201849_7a6fd538",
+      "range": {
+        "startLine": 30,
+        "startChar": 8,
+        "endLine": 30,
+        "endChar": 30
+      },
+      "revId": "ef22c8c1105a5e6f32866d2be3bed8904482df9b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
