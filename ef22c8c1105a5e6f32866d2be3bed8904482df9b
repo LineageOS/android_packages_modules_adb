@@ -22,6 +22,30 @@
       },
       "revId": "ef22c8c1105a5e6f32866d2be3bed8904482df9b",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3bec2126_ce355281",
+        "filename": "root/adbroot_service.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2024-01-21T19:53:56Z",
+      "side": 1,
+      "message": "yeah, no idea how I would be checking that...\nI know user id 1,2,3,4 are front right, front left, back... etc or something akin to that lol\nI think 10 was picked because it\u0027d be hard to reach that id",
+      "parentUuid": "08201849_7a6fd538",
+      "range": {
+        "startLine": 30,
+        "startChar": 8,
+        "endLine": 30,
+        "endChar": 30
+      },
+      "revId": "ef22c8c1105a5e6f32866d2be3bed8904482df9b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
