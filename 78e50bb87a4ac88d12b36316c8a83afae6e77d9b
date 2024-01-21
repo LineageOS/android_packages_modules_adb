@@ -16,6 +16,24 @@
       "message": "the first check is rather useless, you just for the AID define like we did before, and only use the split method if it\u0027s the automotive case?",
       "revId": "78e50bb87a4ac88d12b36316c8a83afae6e77d9b",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "141e9f03_f7ffc28d",
+        "filename": "root/adbroot_service.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2024-01-21T19:07:41Z",
+      "side": 1,
+      "message": "Sure, I just thought this would be more clear to \"read\".",
+      "parentUuid": "da517d85_cdf10061",
+      "revId": "78e50bb87a4ac88d12b36316c8a83afae6e77d9b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
