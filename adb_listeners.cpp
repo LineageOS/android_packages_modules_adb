@@ -166,6 +166,7 @@ void remove_all_listeners() EXCLUDES(listener_list_mutex) {
     }
 }
 
+#if ADB_HOST
 void enable_server_sockets() EXCLUDES(listener_list_mutex) {
     std::lock_guard<std::mutex> lock(listener_list_mutex);
     for (auto& l : listener_list) {
@@ -175,7 +176,6 @@ void enable_server_sockets() EXCLUDES(listener_list_mutex) {
     }
 }
 
-#if ADB_HOST
 void close_smartsockets() EXCLUDES(listener_list_mutex) {
     std::lock_guard<std::mutex> lock(listener_list_mutex);
     auto pred = [](const std::unique_ptr<alistener>& listener) {
