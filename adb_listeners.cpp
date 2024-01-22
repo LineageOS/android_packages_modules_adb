@@ -179,7 +179,7 @@ void enable_server_sockets() EXCLUDES(listener_list_mutex) {
 void close_smartsockets() EXCLUDES(listener_list_mutex) {
     std::lock_guard<std::mutex> lock(listener_list_mutex);
     auto pred = [](const std::unique_ptr<alistener>& listener) {
-        return listener->local_name == "*smartsocket*";
+        return listener->connect_to == "*smartsocket*";
     };
     listener_list.remove_if(pred);
 }
