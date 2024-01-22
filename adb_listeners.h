@@ -22,6 +22,8 @@
 
 #include <android-base/macros.h>
 
+inline constexpr const char* kSmartSocketConnectTo = "*smartsocket*";
+
 // error/status codes for install_listener.
 enum InstallStatus {
   INSTALL_STATUS_OK = 0,
