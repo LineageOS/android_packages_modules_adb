@@ -33,14 +33,17 @@
 #include "transport.h"
 
 // A listener is an entity which binds to a local port and, upon receiving a connection on that
-// port, creates an asocket to connect the new local connection to a specific remote service.
+// port, creates an asocket to connect the new local connection to a specific remote service. They
+// are mostly used to implement forward and reverse-forward.
 //
-// TODO: some listeners read from the new connection to determine what exact service to connect to
-// on the far side.
+// Some listeners, called "smartsockets" read from the new connection to determine what exact
+// service to connect to on the far side. This is implemented with a different fdevent handler.
 class alistener {
   public:
     alistener(const std::string& _local_name, const std::string& _connect_to);
     ~alistener();
+
+    bool isSmartSocket() { return connect_to == kSmartSocketConnectTo; }
 
     fdevent* fde = nullptr;
     int fd = -1;
@@ -127,8 +130,7 @@ std::string format_listeners() EXCLUDES(listener_list_mutex) {
     std::lock_guard<std::mutex> lock(listener_list_mutex);
     std::string result;
     for (auto& l : listener_list) {
-        // Ignore special listeners like those for *smartsocket*
-        if (l->connect_to[0] == '*') {
+        if (l->isSmartSocket()) {
             continue;
         }
         //  <device-serial> " " <local-name> " " <remote-name> "\n"
@@ -166,20 +168,20 @@ void remove_all_listeners() EXCLUDES(listener_list_mutex) {
     }
 }
 
+#if ADB_HOST
 void enable_server_sockets() EXCLUDES(listener_list_mutex) {
     std::lock_guard<std::mutex> lock(listener_list_mutex);
     for (auto& l : listener_list) {
-        if (l->connect_to == "*smartsocket*") {
+        if (l->isSmartSocket()) {
             fdevent_set(l->fde, FDE_READ);
         }
     }
 }
 
-#if ADB_HOST
 void close_smartsockets() EXCLUDES(listener_list_mutex) {
     std::lock_guard<std::mutex> lock(listener_list_mutex);
     auto pred = [](const std::unique_ptr<alistener>& listener) {
-        return listener->local_name == "*smartsocket*";
+        return listener->isSmartSocket();
     };
     listener_list.remove_if(pred);
 }
@@ -192,7 +194,7 @@ InstallStatus install_listener(const std::string& local_name, const char* connec
     for (auto& l : listener_list) {
         if (local_name == l->local_name) {
             // Can't repurpose a smartsocket.
-            if (l->connect_to[0] == '*') {
+            if (l->isSmartSocket()) {
                 *error = "cannot repurpose smartsocket";
                 return INSTALL_STATUS_INTERNAL_ERROR;
             }
@@ -230,7 +232,7 @@ InstallStatus install_listener(const std::string& local_name, const char* connec
     }
 
     close_on_exec(listener->fd);
-    if (listener->connect_to == "*smartsocket*") {
+    if (listener->isSmartSocket()) {
 #if ADB_HOST
         listener->fde = fdevent_create(listener->fd, ss_listener_event_func, listener.get());
 #else
