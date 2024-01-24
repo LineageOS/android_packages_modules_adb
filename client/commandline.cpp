@@ -288,7 +288,8 @@ static void stdin_raw_restore() {
 #endif
 
 int read_and_dump_protocol(borrowed_fd fd, StandardStreamsCallbackInterface* callback) {
-    int exit_code = 0;
+    // OpenSSH returns 255 on unexpected disconnection.
+    int exit_code = 255;
     std::unique_ptr<ShellProtocol> protocol = std::make_unique<ShellProtocol>(fd);
     if (!protocol) {
       LOG(ERROR) << "failed to allocate memory for ShellProtocol object";
