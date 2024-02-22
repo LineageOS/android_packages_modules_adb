@@ -102,12 +102,11 @@ static void register_mdns_service(int index, int port, const std::string service
         LOG(ERROR) << "Could not register mDNS service " << kADBDNSServices[index] << ", error ("
                    << error << ").";
         mdns_registered[index] = false;
+    } else {
+        mdns_registered[index] = true;
     }
-
-    mdns_registered[index] = true;
-
     LOG(INFO) << "adbd mDNS service " << kADBDNSServices[index]
-              << " registered: " << mdns_registered[index];
+            << " registered: " << mdns_registered[index];
 }
 
 static void unregister_mdns_service(int index) {
