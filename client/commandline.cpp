@@ -139,7 +139,7 @@ static void help() {
         "file transfer:\n"
         " push [--sync] [-z ALGORITHM] [-Z] LOCAL... REMOTE\n"
         "     copy local files/directories to device\n"
-        "     --sync: only push files that are newer on the host than the device\n"
+        "     --sync: only push files that have different timestamps on the host than the device\n"
         "     -n: dry run: push files to device without storing to the filesystem\n"
         "     -z: enable compression with a specified algorithm (any/none/brotli/lz4/zstd)\n"
         "     -Z: disable compression\n"
