@@ -179,6 +179,9 @@ bool is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
 
 bool should_use_libusb() {
     bool enable = true;
+#if defined(_WIN32)
+    enable = false;
+#endif
     char* env = getenv("ADB_LIBUSB");
     if (env) {
         enable = (strcmp(env, "1") == 0);
