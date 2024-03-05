@@ -13,15 +13,25 @@ package {
 
 cc_library {
     name: "libadbconnection_server",
-    srcs: ["adbconnection_server.cpp", "common.cpp"],
+    srcs: [
+        "adbconnection_server.cpp",
+        "common.cpp",
+    ],
 
     export_include_dirs: ["include"],
 
     stl: "libc++_static",
     shared_libs: ["liblog"],
-    static_libs: ["libbase"],
+    static_libs: [
+        "libbase",
+        "libapp_processes_protos_lite",
+        "libprotobuf-cpp-lite",
+    ],
 
-    defaults: ["adbd_defaults", "host_adbd_supported"],
+    defaults: [
+        "adbd_defaults",
+        "host_adbd_supported",
+    ],
 
     // Avoid getting duplicate symbol of android::build::GetBuildNumber().
     use_version_lib: false,
@@ -38,13 +48,20 @@ cc_library {
 
 cc_library {
     name: "libadbconnection_client",
-    srcs: ["adbconnection_client.cpp", "common.cpp"],
+    srcs: [
+        "adbconnection_client.cpp",
+        "common.cpp",
+    ],
 
     export_include_dirs: ["include"],
 
     stl: "libc++_static",
     shared_libs: ["liblog"],
-    static_libs: ["libbase"],
+    static_libs: [
+        "libbase",
+        "libapp_processes_protos_lite",
+        "libprotobuf-cpp-lite",
+    ],
 
     defaults: ["adbd_defaults"],
     visibility: [
@@ -64,7 +81,9 @@ cc_library {
         linux: {
             version_script: "libadbconnection_client.map.txt",
         },
-        darwin: { enabled: false },
+        darwin: {
+            enabled: false,
+        },
     },
     stubs: {
         symbol_file: "libadbconnection_client.map.txt",
@@ -73,4 +92,26 @@ cc_library {
 
     host_supported: true,
     compile_multilib: "both",
+}
+
+cc_test_host {
+    name: "libadbconnection_test",
+    srcs: ["tests.cc"],
+     static_libs: [
+         "libandroidfw",
+         "libbase",
+         "libadbconnection_client",
+         "libadbconnection_server",
+         "libapp_processes_protos_lite",
+         "libprotobuf-cpp-lite",
+         "liblog",
+     ],
+     target: {
+        windows: {
+            enabled: false,
+        },
+        darwin: {
+            enabled: false,
+        },
+     }
 }

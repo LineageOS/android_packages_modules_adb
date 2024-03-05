@@ -23,3 +23,16 @@ LIBADBCONNECTION_CLIENT_1 {
   local:
     *;
 };
+
+LIBADBCONNECTION_CLIENT_36 { # introduced=36
+  global:
+    adbconnection_client_set_current_process_name; # apex
+    adbconnection_client_add_application; # apex
+    adbconnection_client_remove_application; # apex
+    adbconnection_client_set_waiting_for_debugger; # apex
+    adbconnection_client_has_pending_update; # apex
+    adbconnection_client_set_user_id; # apex
+    adbconnection_client_send_update; # apex
+  local:
+    *;
+};

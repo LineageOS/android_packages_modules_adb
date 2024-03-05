@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-#pragma once
+package adb.test.app1;
 
-#include <sys/types.h>
+import android.app.Activity;
+import android.os.Bundle;
+import android.widget.TextView;
 
-#include "common.h"
+public class MainActivity extends Activity
+{
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-#include <android-base/unique_fd.h>
+        TextView label = new TextView(this);
+        label.setText("I am MainActivity!");
 
-#include <stdint.h>
-#include <optional>
-
-// Note this is NOT an apex interface as it's linked only into adbd.
-void adbconnection_listen(void (*callback)(int fd, ProcessInfo process));
-
-std::optional<ProcessInfo> readProcessInfoFromSocket(int socket);
+        setContentView(label);
+    }
+}

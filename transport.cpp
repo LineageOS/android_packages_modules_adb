@@ -99,6 +99,7 @@ const char* const kFeatureDelayedAck = "delayed_ack";
 const char* const kFeatureOpenscreenMdns = "openscreen_mdns";
 const char* const kFeatureDeviceTrackerProtoFormat = "devicetracker_proto_format";
 const char* const kFeatureDevRaw = "devraw";
+const char* const kFeatureAppInfo = "app_info";  // Add information to track-app (package name, ...)
 
 namespace {
 
@@ -1208,6 +1209,7 @@ const FeatureSet& supported_features() {
             kFeatureOpenscreenMdns,
             kFeatureDeviceTrackerProtoFormat,
             kFeatureDevRaw,
+            kFeatureAppInfo,
         };
         // clang-format on
 
