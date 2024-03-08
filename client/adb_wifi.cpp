@@ -19,6 +19,7 @@
 #include <fstream>
 #include <random>
 #include <thread>
+#include <type_traits>
 
 #include <adb/crypto/key.h>
 #include <adb/crypto/x509_generator.h>
@@ -48,6 +49,7 @@ struct PairingResultWaiter {
         {
             std::lock_guard<std::mutex> lock(p->mutex_);
             if (peer_info) {
+                static_assert(std::is_standard_layout<decltype(p->peer_info_)>());
                 memcpy(&(p->peer_info_), peer_info, sizeof(PeerInfo));
             }
             p->is_valid_ = (peer_info != nullptr);
@@ -211,6 +213,7 @@ void adb_wifi_pair_device(const std::string& host, const std::string& password,
     system_info.type = ADB_RSA_PUB_KEY;
     std::string public_key = adb_auth_get_userkey();
     CHECK_LE(public_key.size(), sizeof(system_info.data) - 1);  // -1 for null byte
+
     memcpy(system_info.data, public_key.data(), public_key.size());
 
     auto pswd8 = stringToUint8(password);

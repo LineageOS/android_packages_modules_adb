@@ -31,8 +31,6 @@
 
 #include "adb.h"
 
-#if ADB_HOST
-
 #if defined(__APPLE__)
 #define CHECK_PACKET_OVERFLOW 0
 #else
@@ -122,34 +120,6 @@ static int remote_read(apacket* p, usb_handle* usb) {
     return 0;
 }
 
-#else
-
-// On Android devices, we rely on the kernel to provide buffered read.
-// So we can recover automatically from EOVERFLOW.
-static int remote_read(apacket* p, usb_handle* usb) {
-    if (usb_read(usb, &p->msg, sizeof(amessage)) != sizeof(amessage)) {
-        PLOG(ERROR) << "remote usb: read terminated (message)";
-        return -1;
-    }
-
-    if (p->msg.data_length) {
-        if (p->msg.data_length > MAX_PAYLOAD) {
-            PLOG(ERROR) << "remote usb: read overflow (data length = " << p->msg.data_length << ")";
-            return -1;
-        }
-
-        p->payload.resize(p->msg.data_length);
-        if (usb_read(usb, &p->payload[0], p->payload.size()) !=
-            static_cast<int>(p->payload.size())) {
-            PLOG(ERROR) << "remote usb: terminated (data)";
-            return -1;
-        }
-    }
-
-    return 0;
-}
-#endif
-
 UsbConnection::~UsbConnection() {
     usb_close(handle_);
 }
@@ -198,15 +168,23 @@ void init_usb_transport(atransport* t, usb_handle* h) {
     t->SetUsbHandle(h);
 }
 
-int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
-    return (usb_class == ADB_CLASS && usb_subclass == ADB_SUBCLASS && usb_protocol == ADB_PROTOCOL);
+bool is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
+    // ADB over gadget mode and DbC use the same ADB protocol.
+    if (usb_protocol == ADB_PROTOCOL && ((usb_class == ADB_CLASS && usb_subclass == ADB_SUBCLASS) ||
+            (usb_class == ADB_DBC_CLASS && usb_subclass == ADB_DBC_SUBCLASS)))
+        return true;
+    else
+        return false;
 }
 
 bool should_use_libusb() {
-#if !ADB_HOST
-    return false;
-#else
-    static bool enable = getenv("ADB_LIBUSB") && strcmp(getenv("ADB_LIBUSB"), "1") == 0;
-    return enable;
+    bool enable = false;
+#if defined(__APPLE__)
+    enable = true;
 #endif
+    char* env = getenv("ADB_LIBUSB");
+    if (env) {
+        enable = (strcmp(env, "1") == 0);
+    }
+    return enable;
 }

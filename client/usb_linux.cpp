@@ -295,6 +295,13 @@ static void find_usb_device(const std::string& base,
                                                  device->iSerialNumber, zero_mask, max_packet_size);
                         break;
                     }
+                } else if (!length) {
+                    // Specific Corsair USB hubs seen in the wild report a zero-length
+                    // descriptor (resulting in an uninitialized descriptor
+                    // type: https://issuetracker.google.com/302212871).
+                    // If we don't give up here, we'll never make progress.
+                    D("interface descriptor has 0 length. type: %d", type);
+                    break;
                 } else {
                     bufptr += length;
                 }

@@ -68,9 +68,8 @@
 #include "incremental_server.h"
 #include "services.h"
 #include "shell_protocol.h"
+#include "socket_spec.h"
 #include "sysdeps/chrono.h"
-
-extern int gListenAll;
 
 DefaultStandardStreamsCallback DEFAULT_STANDARD_STREAMS_CALLBACK(nullptr, nullptr);
 
@@ -245,7 +244,7 @@ static void help() {
         ""
         "environment variables:\n"
         " $ADB_TRACE\n"
-        "     comma-separated list of debug info to log:\n"
+        "     comma/space separated list of debug info to log:\n"
         "     all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp\n"
         " $ADB_VENDOR_KEYS         colon-separated list of keys (files or directories)\n"
         " $ANDROID_SERIAL          serial number to connect to (see -s)\n"
@@ -253,7 +252,7 @@ static void help() {
         " $ADB_LOCAL_TRANSPORT_MAX_PORT max emulator scan port (default 5585, 16 emus)\n"
         " $ADB_MDNS_AUTO_CONNECT   comma-separated list of mdns services to allow auto-connect (default adb-tls-connect)\n"
         "\n"
-        "Online documentation: https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/master/docs/user/adb.1.md\n"
+        "Online documentation: https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/user/adb.1.md\n"
         "\n"
     );
     // clang-format on
@@ -1572,7 +1571,7 @@ int adb_commandline(int argc, const char** argv) {
         } else if (!strcmp(argv[0], "-e")) {
             transport_type = kTransportLocal;
         } else if (!strcmp(argv[0], "-a")) {
-            gListenAll = 1;
+            gListenAll = true;
         } else if (!strncmp(argv[0], "-H", 2)) {
             if (argv[0][2] == '\0') {
                 if (argc < 2) error_exit("-H requires an argument");
@@ -1643,6 +1642,7 @@ int adb_commandline(int argc, const char** argv) {
         }
         server_socket_str = temp;
     }
+    VLOG(ADB) << "Using server socket: " << server_socket_str;
 
     bool server_start =
             is_daemon || is_server || (argc > 0 && strcmp(argv[0], "start-server") == 0);
@@ -2068,10 +2068,22 @@ int adb_commandline(int argc, const char** argv) {
         TrackAppStreamsCallback callback;
         return adb_connect_command("track-app", nullptr, &callback);
     } else if (!strcmp(argv[0], "track-devices")) {
-        if (argc > 2 || (argc == 2 && strcmp(argv[1], "-l"))) {
-            error_exit("usage: adb track-devices [-l]");
+        const char* listopt;
+        if (argc < 2) {
+            listopt = "";
+        } else {
+            if (!strcmp(argv[1], "-l")) {
+                listopt = argv[1];
+            } else if (!strcmp(argv[1], "--proto-text")) {
+                listopt = "-proto-text";
+            } else if (!strcmp(argv[1], "--proto-binary")) {
+                listopt = "-proto-binary";
+            } else {
+                error_exit("usage: adb track-devices [-l][--proto-text][--proto-binary]");
+            }
         }
-        return adb_connect_command(argc == 2 ? "host:track-devices-l" : "host:track-devices");
+        std::string query = android::base::StringPrintf("host:track-devices%s", listopt);
+        return adb_connect_command(query);
     } else if (!strcmp(argv[0], "raw")) {
         if (argc != 2) {
             error_exit("usage: adb raw SERVICE");

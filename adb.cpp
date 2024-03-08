@@ -33,6 +33,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -46,6 +47,7 @@
 #include <android-base/parsenetaddress.h>
 #include <android-base/stringprintf.h>
 #include <android-base/strings.h>
+#include <android-base/utf8.h>
 #include <diagnose_usb.h>
 
 #include <build/version.h>
@@ -57,6 +59,7 @@
 #include "adb_mdns.h"
 #include "adb_unique_fd.h"
 #include "adb_utils.h"
+#include "socket_spec.h"
 #include "sysdeps/chrono.h"
 #include "transport.h"
 
@@ -776,6 +779,10 @@ static void ReportServerStartupFailure(pid_t pid) {
     while (static_cast<size_t>(i) < lines.size()) fprintf(stderr, "%s\n", lines[i++].c_str());
 }
 
+bool is_one_device_mandatory() {
+    return access("/etc/adb/one_device_required", F_OK) == 0;
+}
+
 int launch_server(const std::string& socket_spec, const char* one_device) {
 #if defined(_WIN32)
     /* we need to start the server in the background                    */
@@ -877,14 +884,26 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
         return -1;
     }
 
-    WCHAR args[4096];
+    std::vector<std::string> child_argv = {"adb", "-L", socket_spec};
+    if (gListenAll) {
+        child_argv.push_back("-a");
+    }
+    child_argv.push_back("fork-server");
+    child_argv.push_back("server");
+    child_argv.push_back("--reply-fd");
+    child_argv.push_back(std::to_string(ack_write_as_int));
     if (one_device) {
-        snwprintf(args, arraysize(args),
-                  L"adb -L %s fork-server server --reply-fd %d --one-device %s",
-                  socket_spec.c_str(), ack_write_as_int, one_device);
-    } else {
-        snwprintf(args, arraysize(args), L"adb -L %s fork-server server --reply-fd %d",
-                  socket_spec.c_str(), ack_write_as_int);
+        child_argv.push_back("--one-device");
+        child_argv.push_back(one_device);
+    }
+    // Ideally we'd do CommandLineToArgvW-like quoting, but this is probably
+    // sufficient for the arguments we have.
+    std::string cmdline = android::base::Join(child_argv, ' ');
+    std::wstring cmdline_wide;
+    if (!android::base::UTF8ToWide(cmdline, &cmdline_wide)) {
+        fprintf(stderr, "adb: could not convert cmdline from UTF-8 to UTF-16: %s\n",
+                cmdline.c_str());
+        return -1;
     }
 
     PROCESS_INFORMATION   pinfo;
@@ -892,7 +911,7 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
 
     if (!CreateProcessW(
             program_path,                              /* program path  */
-            args,
+            cmdline_wide.data(),
                                     /* the fork-server argument will set the
                                        debug = 2 in the child           */
             NULL,                   /* process handle is not inheritable */
@@ -1020,6 +1039,27 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
 
     std::string path = android::base::GetExecutablePath();
 
+    std::string reply_fd = std::to_string(pipe_write.get());
+    // child process arguments
+    std::vector<const char*> child_argv = {"adb", "-L", socket_spec.c_str()};
+    if (gListenAll) {
+        child_argv.push_back("-a");
+    }
+    child_argv.push_back("fork-server");
+    child_argv.push_back("server");
+    child_argv.push_back("--reply-fd");
+    child_argv.push_back(reply_fd.c_str());
+    if (one_device) {
+        child_argv.push_back("--one-device");
+        child_argv.push_back(one_device);
+    } else if (is_one_device_mandatory()) {
+        fprintf(stderr,
+                "adb: cannot start server: --one-device option is required for this system in "
+                "order to start adb.\n");
+        return -1;
+    }
+    child_argv.push_back(nullptr);
+
     pid_t pid = fork();
     if (pid < 0) return -1;
 
@@ -1031,24 +1071,10 @@ int launch_server(const std::string& socket_spec, const char* one_device) {
         // Undo this manually.
         fcntl(pipe_write.get(), F_SETFD, 0);
 
-        char reply_fd[30];
-        snprintf(reply_fd, sizeof(reply_fd), "%d", pipe_write.get());
-        // child process
-        std::vector<const char*> child_argv = {
-                "adb", "-L", socket_spec.c_str(), "fork-server", "server", "--reply-fd", reply_fd};
-        if (one_device) {
-            child_argv.push_back("--one-device");
-            child_argv.push_back(one_device);
-        } else if (access("/etc/adb/one_device_required", F_OK) == 0) {
-            fprintf(stderr,
-                    "adb: cannot start server: --one-device option is required for this system in "
-                    "order to start adb.\n");
-            return -1;
-        }
-        child_argv.push_back(nullptr);
         int result = execv(path.c_str(), const_cast<char* const*>(child_argv.data()));
         // this should not return
         fprintf(stderr, "adb: execl returned %d: %s\n", result, strerror(errno));
+        _exit(127);
     } else {
         // parent side of the fork
         char temp[3] = {};
@@ -1235,7 +1261,7 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
         }
     }
 
-    LOG(DEBUG) << "handle_host_request(" << service << ")";
+    VLOG(SERVICES) << "handle_host_request(" << service << ")";
 
     // Transport selection:
     if (service.starts_with("transport") || service.starts_with("tport:")) {
@@ -1300,9 +1326,14 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
 
     // return a list of all connected devices
     if (service == "devices" || service == "devices-l") {
-        bool long_listing = service == "devices-l";
+        TrackerOutputType output_type;
+        if (service == "devices-l") {
+            output_type = LONG_TEXT;
+        } else {
+            output_type = SHORT_TEXT;
+        }
         D("Getting device list...");
-        std::string device_list = list_transports(long_listing);
+        std::string device_list = list_transports(output_type);
         D("Sending device list...");
         SendOkay(reply_fd, device_list);
         return HostRequestResult::Handled;

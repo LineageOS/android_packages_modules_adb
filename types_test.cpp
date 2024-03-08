@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "fdevent/fdevent_test.h"
@@ -30,7 +31,10 @@ static IOVector::block_type create_block(const std::string& string) {
 static IOVector::block_type create_block(char value, size_t len) {
     auto block = IOVector::block_type();
     block.resize(len);
+
+    static_assert(std::is_standard_layout<decltype(block)>());
     memset(&(block)[0], value, len);
+
     return block;
 }
 

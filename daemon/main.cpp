@@ -18,10 +18,6 @@
 
 #include "sysdeps.h"
 
-#if defined(__BIONIC__)
-#include <android/fdsan.h>
-#endif
-
 #include <errno.h>
 #include <getopt.h>
 #include <malloc.h>
@@ -197,15 +193,6 @@ int adbd_main(int server_port) {
     umask(0);
 
     signal(SIGPIPE, SIG_IGN);
-
-#if defined(__BIONIC__)
-    auto fdsan_level = android_fdsan_get_error_level();
-    if (fdsan_level == ANDROID_FDSAN_ERROR_LEVEL_DISABLED) {
-        android_fdsan_set_error_level(ANDROID_FDSAN_ERROR_LEVEL_WARN_ONCE);
-    }
-#endif
-
-    init_transport_registration();
 
     // We need to call this even if auth isn't enabled because the file
     // descriptor will always be open.

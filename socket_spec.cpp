@@ -52,12 +52,11 @@ using android::base::StringPrintf;
 #endif
 
 #if ADB_LINUX
+#include <linux/vm_sockets.h>
 #include <sys/socket.h>
-#include "sysdeps/vm_sockets.h"
 #endif
 
-// Not static because it is used in commandline.c.
-int gListenAll = 0;
+bool gListenAll = false;
 
 struct LocalSocketType {
     int socket_namespace;

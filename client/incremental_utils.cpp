@@ -24,6 +24,7 @@
 #include <ziparchive/zip_archive.h>
 #include <ziparchive/zip_writer.h>
 
+#include <algorithm>
 #include <array>
 #include <cinttypes>
 #include <numeric>

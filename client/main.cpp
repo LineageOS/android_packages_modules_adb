@@ -130,7 +130,6 @@ int adb_server_main(int is_daemon, const std::string& socket_spec, const char* o
 
     atexit(adb_server_cleanup);
 
-    init_transport_registration();
     init_reconnect_handler();
 
     adb_wifi_init();

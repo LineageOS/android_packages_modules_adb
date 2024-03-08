@@ -133,7 +133,7 @@ class ResolvedService : public AsyncServiceRef {
             Initialize();
         }
 
-        D("Client version: %d Service version: %d\n", clientVersion_, service_version_);
+        D("Client version: %d Service version: %d", clientVersion_, service_version_);
     }
 
     bool ConnectSecureWifiDevice() {
@@ -444,14 +444,20 @@ int ParseVersionFromTxtRecord(uint16_t txt_len, const unsigned char* txt_record)
     // in the DNS message.  There is no way to tell directly from the data
     // alone how long it is (e.g., there is no length count at the start, or
     // terminating NULL byte at the end).
+    //
+    // The format of the data within a DNS TXT record is zero or more strings,
+    // packed together in memory without any intervening gaps or padding bytes
+    // for word alignment. The format of each constituent string within the DNS
+    // TXT record is a single length byte, followed by 0-255 bytes of text data.
     // """
 
-    // Let's trust the TXT record's length byte
-    // Worst case, it wastes 255 bytes
+    // We only parse the first string in the record.
+    // Let's not trust the length byte (txt_record[0]).
+    // Worst case, it wastes 65,535 bytes.
     std::vector<char> record_str(txt_len + 1, '\0');
     char* str = record_str.data();
 
-    memcpy(str, txt_record + 1 /* skip the length byte */, txt_len);
+    memcpy(str, txt_record + 1 /* skip the length byte */, txt_len - 1);
 
     // Check if it's the version key
     static const char* version_key = "v=";
