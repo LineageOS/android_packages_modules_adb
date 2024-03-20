@@ -23,13 +23,10 @@
 #include <sstream>
 #include <string>
 
-#include <google/protobuf/util/message_differencer.h>
-
 #include "adb_io.h"
 #include "sysdeps.h"
 
 using namespace com::android::fastdeploy;
-using google::protobuf::util::MessageDifferencer;
 
 static std::string GetTestFile(const std::string& name) {
     return "fastdeploy/testdata/" + name;
