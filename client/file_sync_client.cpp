@@ -292,6 +292,10 @@ class SyncConnection {
 
     bool IsValid() { return fd >= 0; }
 
+    void SetQuiet(bool quiet) {
+        line_printer_.quiet_ = quiet;
+    }
+
     void NewTransfer() {
         current_ledger_.Reset();
     }
@@ -1442,9 +1446,10 @@ static bool copy_local_dir_remote(SyncConnection& sc, std::string lpath, std::st
 }
 
 bool do_sync_push(const std::vector<const char*>& srcs, const char* dst, bool sync,
-                  CompressionType compression, bool dry_run) {
+                  CompressionType compression, bool dry_run, bool quiet) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
+    sc.SetQuiet(quiet);
 
     bool success = true;
     bool dst_exists;
@@ -1664,9 +1669,10 @@ static bool copy_remote_dir_local(SyncConnection& sc, std::string rpath, std::st
 }
 
 bool do_sync_pull(const std::vector<const char*>& srcs, const char* dst, bool copy_attrs,
-                  CompressionType compression, const char* name) {
+                  CompressionType compression, const char* name, bool quiet) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
+    sc.SetQuiet(quiet);
 
     bool success = true;
     struct stat st;
@@ -1774,9 +1780,10 @@ bool do_sync_pull(const std::vector<const char*>& srcs, const char* dst, bool co
 }
 
 bool do_sync_sync(const std::string& lpath, const std::string& rpath, bool list_only,
-                  CompressionType compression, bool dry_run) {
+                  CompressionType compression, bool dry_run, bool quiet) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
+    sc.SetQuiet(quiet);
 
     bool success = copy_local_dir_remote(sc, lpath, rpath, true, list_only, compression, dry_run);
     if (!list_only) {
