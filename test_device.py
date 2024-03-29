@@ -1849,23 +1849,7 @@ class DevicesListing(DeviceTest):
         self.assertTrue(device.max_speed == int(device.max_speed))
         self.assertTrue(device.transport_id == int(device.transport_id))
 
-def main():
-    random.seed(0)
-    if len(adb.get_devices()) == 0:
-        print('Test suite must be run with attached devices')
-        return
-
-    # Run only specific test if given on command-line e.g:
-    # ./test_device.py ForwardReverseTest
-    # ./test_device.py ForwardReverseTest.test_forward_no_rebind
-    if len(sys.argv) == 2:
-        test_name = "." + sys.argv[1]
-    else:
-        test_name = ""
-
-    suite = unittest.TestLoader().loadTestsFromName("__main__" + test_name)
-    unittest.TextTestRunner(verbosity=3).run(suite)
-
 
 if __name__ == '__main__':
-    main()
+    random.seed(0)
+    unittest.main()
