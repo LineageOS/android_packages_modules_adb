@@ -60,7 +60,8 @@ def requires_non_root(func):
 
 
 class DeviceTest(unittest.TestCase):
-    device = adb.get_device()
+    def setUp(self) -> None:
+        self.device = adb.get_device()
 
 
 class AbbTest(DeviceTest):
@@ -138,10 +139,10 @@ class ForwardReverseTest(DeviceTest):
         self.assertEqual('', msg.strip(),
                          'Forwarding list must be empty to run this test.')
 
-        s = socket.create_connection(("localhost", 5037))
-        service = b"host-serial:%s:forward:tcp:5566;tcp:6655" % serialno
-        cmd = b"%04x%s" % (len(service), service)
-        s.sendall(cmd)
+        with socket.create_connection(("localhost", 5037)) as s:
+            service = b"host-serial:%s:forward:tcp:5566;tcp:6655" % serialno
+            cmd = b"%04x%s" % (len(service), service)
+            s.sendall(cmd)
 
         msg = self.device.forward_list()
         self.assertTrue(re.search(r'tcp:5566.+tcp:6655', msg))
@@ -491,13 +492,13 @@ class ShellTest(DeviceTest):
 
         script = ";".join([x.strip() for x in script.strip().splitlines()])
 
-        process = self.device.shell_popen([script], kill_atexit=False,
-                                          stdin=subprocess.PIPE,
-                                          stdout=subprocess.PIPE)
+        with self.device.shell_popen([script], kill_atexit=False,
+                                     stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE) as process:
 
-        self.assertEqual(b"Waiting\n", process.stdout.readline())
-        process.send_signal(signal.SIGINT)
-        process.wait()
+            self.assertEqual(b"Waiting\n", process.stdout.readline())
+            process.send_signal(signal.SIGINT)
+            process.wait()
 
         # Waiting for the local adb to finish is insufficient, since it hangs
         # up immediately.
@@ -679,15 +680,6 @@ def compute_md5(string):
     return hsh.hexdigest()
 
 
-def get_md5_prog(device):
-    """Older platforms (pre-L) had the name md5 rather than md5sum."""
-    try:
-        device.shell(['md5sum', '/proc/uptime'])
-        return 'md5sum'
-    except adb.ShellError:
-        return 'md5'
-
-
 class HostFile(object):
     def __init__(self, handle, checksum):
         self.handle = handle
@@ -735,7 +727,7 @@ def make_random_device_files(device, in_dir, num_files, prefix='device_tmpfile')
 
         device.shell(['dd', 'if=/dev/urandom', 'of={}'.format(full_path),
                       'bs={}'.format(size), 'count=1'])
-        dev_md5, _ = device.shell([get_md5_prog(device), full_path])[0].split()
+        dev_md5, _ = device.shell(['md5sum', full_path])[0].split()
 
         files.append(DeviceFile(dev_md5, full_path))
     return files
@@ -748,6 +740,7 @@ class FileOperationsTest:
         DEVICE_TEMP_DIR = SCRATCH_DIR + '/adb_test_dir'
 
         def setUp(self):
+            super().setUp()
             self.previous_env = os.environ.get("ADB_COMPRESSION")
             os.environ["ADB_COMPRESSION"] = self.compression
 
@@ -758,8 +751,7 @@ class FileOperationsTest:
                 os.environ["ADB_COMPRESSION"] = self.previous_env
 
         def _verify_remote(self, checksum, remote_path):
-            dev_md5, _ = self.device.shell([get_md5_prog(self.device),
-                                            remote_path])[0].split()
+            dev_md5, _ = self.device.shell(['md5sum', remote_path])[0].split()
             self.assertEqual(checksum, dev_md5)
 
         def _verify_local(self, checksum, local_path):
@@ -986,8 +978,7 @@ class FileOperationsTest:
                    'of={}'.format(self.DEVICE_TEMP_FILE), 'bs=1024',
                    'count={}'.format(kbytes)]
             self.device.shell(cmd)
-            dev_md5, _ = self.device.shell(
-                [get_md5_prog(self.device), self.DEVICE_TEMP_FILE])[0].split()
+            dev_md5, _ = self.device.shell(['md5sum', self.DEVICE_TEMP_FILE])[0].split()
             self._test_pull(self.DEVICE_TEMP_FILE, dev_md5)
             self.device.shell_nocheck(['rm', self.DEVICE_TEMP_FILE])
 
@@ -1198,8 +1189,7 @@ class FileOperationsTest:
             for temp_file in temp_files:
                 device_full_path = posixpath.join(
                     device_dir, temp_file.base_name)
-                dev_md5, _ = device.shell(
-                    [get_md5_prog(self.device), device_full_path])[0].split()
+                dev_md5, _ = device.shell(['md5sum', device_full_path])[0].split()
                 self.assertEqual(temp_file.checksum, dev_md5)
 
         def test_sync(self):
@@ -1283,7 +1273,7 @@ class FileOperationsTest:
 
 
         def test_push_dry_run_nonexistent_file(self):
-            """Push with dry run."""
+            """Push with dry run (non-existent file)."""
 
             for file_size in [8, 1024 * 1024]:
                 try:
@@ -1511,8 +1501,6 @@ class SocketTest(DeviceTest):
 
         Bug: http://b/74616284
         """
-        s = socket.create_connection(("localhost", 5037))
-
         def adb_length_prefixed(string):
             encoded = string.encode("utf8")
             result = b"%04x%s" % (len(encoded), encoded)
@@ -1523,36 +1511,38 @@ class SocketTest(DeviceTest):
         else:
             transport_string = "host:transport-any"
 
-        s.sendall(adb_length_prefixed(transport_string))
-        response = s.recv(4)
-        self.assertEqual(b"OKAY", response)
+        with socket.create_connection(("localhost", 5037)) as s:
 
-        shell_string = "shell:sleep 0.5; dd if=/dev/zero bs=1m count=1 status=none; echo foo"
-        s.sendall(adb_length_prefixed(shell_string))
+            s.sendall(adb_length_prefixed(transport_string))
+            response = s.recv(4)
+            self.assertEqual(b"OKAY", response)
 
-        response = s.recv(4)
-        self.assertEqual(b"OKAY", response)
+            shell_string = "shell:sleep 0.5; dd if=/dev/zero bs=1m count=1 status=none; echo foo"
+            s.sendall(adb_length_prefixed(shell_string))
 
-        # Spawn a thread that dumps garbage into the socket until failure.
-        def spam():
-            buf = b"\0" * 16384
-            try:
-                while True:
-                    s.sendall(buf)
-            except Exception as ex:
-                print(ex)
+            response = s.recv(4)
+            self.assertEqual(b"OKAY", response)
 
-        thread = threading.Thread(target=spam)
-        thread.start()
+            # Spawn a thread that dumps garbage into the socket until failure.
+            def spam():
+                buf = b"\0" * 16384
+                try:
+                    while True:
+                        s.sendall(buf)
+                except Exception as ex:
+                    print(ex)
 
-        time.sleep(1)
+            thread = threading.Thread(target=spam)
+            thread.start()
 
-        received = b""
-        while True:
-            read = s.recv(512)
-            if len(read) == 0:
-                break
-            received += read
+            time.sleep(1)
+
+            received = b""
+            while True:
+                read = s.recv(512)
+                if len(read) == 0:
+                    break
+                received += read
 
         self.assertEqual(1024 * 1024 + len("foo\n"), len(received))
         thread.join()
@@ -1771,83 +1761,88 @@ class DevicesListing(DeviceTest):
     #     return subprocess.check_output(self.device.adb_cmd + ['get-serialno']).strip().decode("utf-8")
 
     def test_devices(self):
-        proc = subprocess.Popen(['adb', 'devices'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        lines = list(map(lambda b: b.decode("utf-8"), proc.stdout.readlines()))
-        self.assertEqual(len(lines), 3)
-        line = lines[1]
-        self.assertTrue(self.serial in line)
-        self.assertFalse("{" in line)
-        self.assertFalse("}" in line)
-        self.assertTrue("device" in line)
-        self.assertFalse("product" in line)
-        self.assertFalse("transport" in line)
+        with subprocess.Popen(['adb', 'devices'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+            lines = list(map(lambda b: b.decode("utf-8"), proc.stdout.readlines()))
+            self.assertEqual(len(lines), 3)
+            line = lines[1]
+            self.assertTrue(self.serial in line)
+            self.assertFalse("{" in line)
+            self.assertFalse("}" in line)
+            self.assertTrue("device" in line)
+            self.assertFalse("product" in line)
+            self.assertFalse("transport" in line)
 
     def test_devices_l(self):
-        proc = subprocess.Popen(['adb', 'devices', '-l'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        lines = list(map(lambda b: b.decode("utf-8"), proc.stdout.readlines()))
-        self.assertEqual(len(lines), 3)
-        line = lines[1]
-        self.assertTrue(self.serial in line)
-        self.assertFalse("{" in line)
-        self.assertFalse("}" in line)
-        self.assertTrue("device" in line)
-        self.assertTrue("product" in line)
-        self.assertTrue("transport" in line)
+        with subprocess.Popen(['adb', 'devices', '-l'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+            lines = list(map(lambda b: b.decode("utf-8"), proc.stdout.readlines()))
+            self.assertEqual(len(lines), 3)
+            line = lines[1]
+            self.assertTrue(self.serial in line)
+            self.assertFalse("{" in line)
+            self.assertFalse("}" in line)
+            self.assertTrue("device" in line)
+            self.assertTrue("product" in line)
+            self.assertTrue("transport" in line)
 
     def test_track_devices(self):
-        proc = subprocess.Popen(['adb', 'track-devices'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        reader = io.TextIOWrapper(proc.stdout, encoding='utf8')
-        output_size = int(reader.read(4), 16)
-        output = reader.read(output_size)
-        self.assertFalse("{" in output)
-        self.assertFalse("}" in output)
-        self.assertTrue(self.serial in output)
-        self.assertTrue("device" in output)
-        self.assertFalse("product" in output)
-        self.assertFalse("transport" in output)
+        with subprocess.Popen(['adb', 'track-devices'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+            with io.TextIOWrapper(proc.stdout, encoding='utf8') as reader:
+                output_size = int(reader.read(4), 16)
+                output = reader.read(output_size)
+                self.assertFalse("{" in output)
+                self.assertFalse("}" in output)
+                self.assertTrue(self.serial in output)
+                self.assertTrue("device" in output)
+                self.assertFalse("product" in output)
+                self.assertFalse("transport" in output)
+            proc.terminate()
 
     def test_track_devices_l(self):
-        proc = subprocess.Popen(['adb', 'track-devices', '-l'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        reader = io.TextIOWrapper(proc.stdout, encoding='utf8')
-        output_size = int(reader.read(4), 16)
-        output = reader.read(output_size)
-        self.assertFalse("{" in output)
-        self.assertFalse("}" in output)
-        self.assertTrue(self.serial in output)
-        self.assertTrue("device" in output)
-        self.assertTrue("product" in output)
-        self.assertTrue("transport" in output)
+        with subprocess.Popen(['adb', 'track-devices', '-l'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+            with io.TextIOWrapper(proc.stdout, encoding='utf8') as reader:
+                output_size = int(reader.read(4), 16)
+                output = reader.read(output_size)
+                self.assertFalse("{" in output)
+                self.assertFalse("}" in output)
+                self.assertTrue(self.serial in output)
+                self.assertTrue("device" in output)
+                self.assertTrue("product" in output)
+                self.assertTrue("transport" in output)
+            proc.terminate()
 
     def test_track_devices_proto_text(self):
-        proc = subprocess.Popen(['adb', 'track-devices', '--proto-text'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        reader = io.TextIOWrapper(proc.stdout, encoding='utf8')
-        output_size = int(reader.read(4), 16)
-        output = reader.read(output_size)
-        self.assertTrue("{" in output)
-        self.assertTrue("}" in output)
-        self.assertTrue(self.serial in output)
-        self.assertTrue("device" in output)
-        self.assertTrue("product" in output)
-        self.assertTrue("connection_type" in output)
+        with subprocess.Popen(['adb', 'track-devices', '--proto-text'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+            with io.TextIOWrapper(proc.stdout, encoding='utf8') as reader:
+                output_size = int(reader.read(4), 16)
+                output = reader.read(output_size)
+                self.assertTrue("{" in output)
+                self.assertTrue("}" in output)
+                self.assertTrue(self.serial in output)
+                self.assertTrue("device" in output)
+                self.assertTrue("product" in output)
+                self.assertTrue("connection_type" in output)
+            proc.terminate()
 
     def test_track_devices_proto_binary(self):
-        proc = subprocess.Popen(['adb', 'track-devices', '--proto-binary'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        with subprocess.Popen(['adb', 'track-devices', '--proto-binary'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
 
-        output_size = int(proc.stdout.read(4).decode("utf-8"), 16)
-        proto = proc.stdout.read(output_size)
+            output_size = int(proc.stdout.read(4).decode("utf-8"), 16)
+            proto = proc.stdout.read(output_size)
 
-        devices = proto_devices.Devices()
-        devices.ParseFromString(proto)
+            devices = proto_devices.Devices()
+            devices.ParseFromString(proto)
 
-        device = devices.device[0]
-        self.assertTrue(device.serial == self.serial)
-        self.assertFalse(device.bus_address == "")
-        self.assertFalse(device.product == "")
-        self.assertFalse(device.model == "")
-        self.assertFalse(device.device == "")
-        self.assertTrue(device.negotiated_speed == int(device.negotiated_speed))
-        self.assertTrue(device.max_speed == int(device.max_speed))
-        self.assertTrue(device.transport_id == int(device.transport_id))
+            device = devices.device[0]
+            self.assertTrue(device.serial == self.serial)
+            self.assertFalse(device.bus_address == "")
+            self.assertFalse(device.product == "")
+            self.assertFalse(device.model == "")
+            self.assertFalse(device.device == "")
+            self.assertTrue(device.negotiated_speed == int(device.negotiated_speed))
+            self.assertTrue(device.max_speed == int(device.max_speed))
+            self.assertTrue(device.transport_id == int(device.transport_id))
+
+            proc.terminate()
 
 
 if __name__ == '__main__':
