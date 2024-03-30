@@ -26,6 +26,8 @@ struct LinePrinter {
   bool is_smart_terminal() const { return smart_terminal_; }
   void set_smart_terminal(bool smart) { smart_terminal_ = smart; }
 
+  bool quiet_ = false;
+
   enum LineType { INFO, WARNING, ERROR };
 
   /// Outputs the given line. INFO output will be overwritten.
