@@ -68,6 +68,16 @@ using android::base::Dirname;
 using android::base::Realpath;
 using android::base::StringPrintf;
 
+static bool should_use_fs_config(const std::string& path) {
+#if defined(__ANDROID__)
+    // TODO: use fs_config to configure permissions on /data too.
+    return !android::base::StartsWith(path, "/data/");
+#else
+    UNUSED(path);
+    return false;
+#endif
+}
+
 static bool update_capabilities(const char* path, uint64_t capabilities) {
 #if defined(__ANDROID__)
     if (capabilities == 0) {
@@ -109,7 +119,9 @@ static bool secure_mkdirs(const std::string& path) {
         }
         partial_path += path_component;
 
-        adbd_fs_config(partial_path.c_str(), true, nullptr, &uid, &gid, &mode, &capabilities);
+        if (should_use_fs_config(partial_path)) {
+            adbd_fs_config(partial_path.c_str(), 1, nullptr, &uid, &gid, &mode, &capabilities);
+        }
         if (adb_mkdir(partial_path.c_str(), mode) == -1) {
             if (errno != EEXIST) {
                 return false;
@@ -518,8 +530,8 @@ static bool send_impl(int s, const std::string& path, mode_t mode, CompressionTy
         uid_t uid = -1;
         gid_t gid = -1;
         uint64_t capabilities = 0;
-        if (!dry_run) {
-            adbd_fs_config(path.c_str(), false, nullptr, &uid, &gid, &mode, &capabilities);
+        if (should_use_fs_config(path) && !dry_run) {
+            adbd_fs_config(path.c_str(), 0, nullptr, &uid, &gid, &mode, &capabilities);
         }
 
         result = handle_send_file(s, path.c_str(), &timestamp, uid, gid, capabilities, mode,
