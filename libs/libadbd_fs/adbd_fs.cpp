@@ -17,14 +17,19 @@
 #include <adbd_fs.h>
 
 #include <private/fs_config.h>
+#include <unistd.h>
 
 void adbd_fs_config(const char* path, int dir, const char* target_out_path, uid_t* uid, gid_t* gid,
                     mode_t* mode, uint64_t* capabilities) {
-  unsigned uid_hack;
-  unsigned gid_hack;
-  unsigned mode_hack;
-  fs_config(path, dir, target_out_path, &uid_hack, &gid_hack, &mode_hack, capabilities);
-  *uid = uid_hack;
-  *gid = gid_hack;
-  *mode = mode_hack;
+  // Only root has the necessary permissions to be able to apply fs_config.
+  if (getuid() != 0) {
+    return;
+  }
+  struct fs_config conf;
+  if (get_fs_config(path, dir, target_out_path, &conf)) {
+    *uid = conf.uid;
+    *gid = conf.gid;
+    *mode = conf.mode;
+    *capabilities = conf.capabilities;
+  }
 }

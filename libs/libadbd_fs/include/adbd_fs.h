@@ -20,7 +20,7 @@
 #include <sys/types.h>
 
 extern "C" {
-// Thin wrapper around libcutils fs_config.
+// Thin wrapper around libcutils get_fs_config.
 void adbd_fs_config(const char* path, int dir, const char* target_out_path, uid_t* uid, gid_t* gid,
                     mode_t* mode, uint64_t* capabilities);
 }
