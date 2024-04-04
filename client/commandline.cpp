@@ -119,6 +119,7 @@ static void help() {
         "       localreserved:<unix domain socket name>\n"
         "       localfilesystem:<unix domain socket name>\n"
         "       dev:<character device name>\n"
+        "       dev-raw:<character device name> (open device in raw mode)\n"
         "       jdwp:<process pid> (remote only)\n"
         "       vsock:<CID>:<port> (remote only)\n"
         "       acceptfd:<fd> (listen only)\n"
@@ -1504,6 +1505,19 @@ static bool _is_valid_os_fd(int fd) {
     return true;
 }
 
+bool forward_dest_is_featured(const std::string& dest, std::string* error) {
+    auto features = adb_get_feature_set_or_die();
+
+    if (android::base::StartsWith(dest, "dev-raw:")) {
+        if (!CanUseFeature(*features, kFeatureDevRaw)) {
+            *error = "dev-raw is not supported by the device";
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int adb_commandline(int argc, const char** argv) {
     bool no_daemon = false;
     bool is_daemon = false;
@@ -1887,13 +1901,15 @@ int adb_commandline(int argc, const char** argv) {
         } else if (strcmp(argv[0], "--no-rebind") == 0) {
             // forward --no-rebind <local> <remote>
             if (argc != 3) error_exit("--no-rebind takes two arguments");
-            if (forward_targets_are_valid(argv[1], argv[2], &error_message)) {
+            if (forward_targets_are_valid(argv[1], argv[2], &error_message) &&
+                forward_dest_is_featured(argv[2], &error_message)) {
                 cmd = std::string("forward:norebind:") + argv[1] + ";" + argv[2];
             }
         } else {
             // forward <local> <remote>
             if (argc != 2) error_exit("forward takes two arguments");
-            if (forward_targets_are_valid(argv[0], argv[1], &error_message)) {
+            if (forward_targets_are_valid(argv[0], argv[1], &error_message) &&
+                forward_dest_is_featured(argv[1], &error_message)) {
                 cmd = std::string("forward:") + argv[0] + ";" + argv[1];
             }
         }

@@ -101,6 +101,8 @@ extern const char* const kFeatureSendRecv2Zstd;
 extern const char* const kFeatureSendRecv2DryRunSend;
 // adbd supports delayed acks.
 extern const char* const kFeatureDelayedAck;
+// adbd supports `dev-raw` service
+extern const char* const kFeatureDevRaw;
 
 TransportId NextTransportId();
 
