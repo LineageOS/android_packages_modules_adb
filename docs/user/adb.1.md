@@ -91,6 +91,8 @@ forward **\-\-list** | [**--no-rebind**] **LOCAL_REMOTE** | **\-\-remove** **LOC
 &nbsp;&nbsp;&nbsp;&nbsp;**jdwp**:**PROCESS PID** (remote only).
 &nbsp;&nbsp;&nbsp;&nbsp;**vsock**:**CID**:**PORT** (remote only).
 &nbsp;&nbsp;&nbsp;&nbsp;**acceptfd**:**FD** (listen only).
+&nbsp;&nbsp;&nbsp;&nbsp;**dev**:**DEVICE_NAME**.
+&nbsp;&nbsp;&nbsp;&nbsp;**dev-raw**:**DEVICE_NAME**. (open device in raw mode)**.
 
 **\-\-remove** **LOCAL**
 &nbsp;&nbsp;&nbsp;&nbsp;Remove specific forward socket connection.

@@ -98,6 +98,7 @@ const char* const kFeatureDelayedAck = "delayed_ack";
 // TODO(joshuaduong): Bump to v2 when openscreen discovery is enabled by default
 const char* const kFeatureOpenscreenMdns = "openscreen_mdns";
 const char* const kFeatureDeviceTrackerProtoFormat = "devicetracker_proto_format";
+const char* const kFeatureDevRaw = "devraw";
 
 namespace {
 
@@ -1206,6 +1207,7 @@ const FeatureSet& supported_features() {
             kFeatureSendRecv2DryRunSend,
             kFeatureOpenscreenMdns,
             kFeatureDeviceTrackerProtoFormat,
+            kFeatureDevRaw,
         };
         // clang-format on
 

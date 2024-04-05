@@ -191,7 +191,17 @@ dev:<path>
     Opens a device file and connects the client directly to it for
     read/write purposes. Useful for debugging, but may require special
     privileges and thus may not run on all devices. <path> is a full
-    path from the root of the filesystem.
+    path from the root of the filesystem. Besides debugging this is
+    useful for allowing test automation running on host (not Android
+    device) to directly interact with the device file when a
+    non-trivial protocol is needed and adb shell is not suitable. Use
+    cases: factory tests for device peripherals, emulated peripheral
+    control (cuttlefish) for test automation.
+
+dev-raw:<path>
+    Similar with dev:<path>, the only difference being that the device
+    is opened in raw tty mode. Useful when default tty settings
+    interferes with protocol that is used to control the device.
 
 tcp:<port>
     Tries to connect to tcp port <port> on localhost.
