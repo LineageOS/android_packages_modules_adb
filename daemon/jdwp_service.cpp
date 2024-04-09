@@ -405,9 +405,15 @@ struct JdwpTracker : public asocket {
 static auto& _jdwp_trackers = *new std::vector<std::unique_ptr<JdwpTracker>>();
 
 static void process_list_updated(TrackerKind kind) {
+    // Find out the max payload we can output.
+    // We start with the max the protocol can handle (hex4).
+    size_t maxPayload = UINT16_MAX;
+    for (auto& t : _jdwp_trackers) {
+        maxPayload = std::min(maxPayload, t->get_max_payload());
+    }
+
     std::string data;
-    const int kMaxLength = kind == TrackerKind::kJdwp ? 1024 : 2048;
-    data.resize(kMaxLength);
+    data.resize(maxPayload);
     data.resize(process_list_msg(kind, &data[0], data.size()));
 
     for (auto& t : _jdwp_trackers) {
