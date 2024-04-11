@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #endif
 
-// Make sure printf is really adb_printf which works for UTF-8 on Windows.
+// Make sure fwrite is really adb_fwrite which works for UTF-8 on Windows.
 #include <sysdeps.h>
 
 // Stuff from ninja's util.h that's needed below.
@@ -48,23 +48,23 @@ string ElideMiddle(const string& str, size_t width) {
 LinePrinter::LinePrinter() : have_blank_line_(true) {
 #ifndef _WIN32
   const char* term = getenv("TERM");
-  smart_terminal_ = unix_isatty(1) && term && string(term) != "dumb";
+  smart_terminal_ = unix_isatty(STDERR_FILENO) && term && string(term) != "dumb";
 #else
   // Disable output buffer.  It'd be nice to use line buffering but
   // MSDN says: "For some systems, [_IOLBF] provides line
   // buffering. However, for Win32, the behavior is the same as _IOFBF
   // - Full Buffering."
-  setvbuf(stdout, nullptr, _IONBF, 0);
-  console_ = GetStdHandle(STD_OUTPUT_HANDLE);
+  setvbuf(stderr, nullptr, _IONBF, 0);
+  console_ = GetStdHandle(STD_ERROR_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   smart_terminal_ = GetConsoleScreenBufferInfo(console_, &csbi);
 #endif
 }
 
 static void Out(const std::string& s) {
-  // Avoid printf and C strings, since the actual output might contain null
+  // Avoid fprintf and C strings, since the actual output might contain null
   // bytes like UTF-16 does (yuck).
-  fwrite(s.data(), 1, s.size(), stdout);
+  fwrite(s.data(), 1, s.size(), stderr);
 }
 
 void LinePrinter::Print(string to_print, LineType type) {
@@ -84,7 +84,7 @@ void LinePrinter::Print(string to_print, LineType type) {
   // Print over previous line, if any.
   // On Windows, calling a C library function writing to stdout also handles
   // pausing the executable when the "Pause" key or Ctrl-S is pressed.
-  printf("\r");
+  Out("\r");
 
   if (type == INFO) {
 #ifdef _WIN32
@@ -119,8 +119,7 @@ void LinePrinter::Print(string to_print, LineType type) {
       to_print = ElideMiddle(to_print, size.ws_col);
     }
     Out(to_print);
-    printf("\x1B[K");  // Clear to end of line.
-    fflush(stdout);
+    Out("\x1B[K");  // Clear to end of line.
 #endif
 
     have_blank_line_ = false;
