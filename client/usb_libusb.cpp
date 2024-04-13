@@ -872,7 +872,7 @@ static std::unordered_map<libusb_device*, std::weak_ptr<LibusbConnection>> usb_h
 static std::atomic<int> connecting_devices(0);
 
 static void process_device(libusb_device* device_raw) {
-    std::string device_address = get_device_address(device_raw);
+    std::string device_address = "usb:" + get_device_address(device_raw);
     VLOG(USB) << "device connected: " << device_address;
 
     unique_device device(libusb_ref_device(device_raw));
