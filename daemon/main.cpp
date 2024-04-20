@@ -121,7 +121,19 @@ static void drop_privileges(int server_port) {
         const bool should_drop_caps = !__android_log_is_debuggable();
 
         if (should_drop_caps) {
-            minijail_use_caps(jail.get(), CAP_TO_MASK(CAP_SETUID) | CAP_TO_MASK(CAP_SETGID));
+            // CAP_SETUI and CAP_SETGID are required for change_uid and change_gid calls below.
+            // CAP_SYS_NICE needs to be in the bounding set of adbd for sh spawned from `adb shell`
+            // to also have it in the bounding set. This in turn is required to be able to launch
+            // VMs from shell (e.g. adb shell /apex/com.android.virt/bin/vm run-microdroid).
+            // Full fork+execve chain looks like this:
+            //   adbd (CapBnd: CAP_SYS_NICE) -> /system/bin/sh (CapBnd: CAP_SYS_NICE) ->
+            //   /apex/com.android.virt/bin/vm (CapBnd: CAP_SYS_NICE) ->
+            //   virtmngr (CapBnd: CAP_SYS_NICE) -> crosvm (CapEff: CAP_SYS_NICE).
+            // Note: the adbd will drop it's effective capabilities several lines below, while the
+            // /system/bin/sh process spawned from adbd will run as non-root uid, hence won't be
+            // able to use the CAP_SYS_NICE capability in the first place.
+            minijail_use_caps(jail.get(), CAP_TO_MASK(CAP_SETUID) | CAP_TO_MASK(CAP_SETGID) |
+                                                  CAP_TO_MASK(CAP_SYS_NICE));
         }
 
         minijail_change_gid(jail.get(), AID_SHELL);
@@ -140,7 +152,7 @@ static void drop_privileges(int server_port) {
             PLOG(FATAL) << "cap_clear_flag(INHERITABLE) failed";
         }
         if (cap_clear_flag(caps.get(), CAP_EFFECTIVE) == -1) {
-            PLOG(FATAL) << "cap_clear_flag(PEMITTED) failed";
+            PLOG(FATAL) << "cap_clear_flag(EFFECTIVE) failed";
         }
         if (cap_clear_flag(caps.get(), CAP_PERMITTED) == -1) {
             PLOG(FATAL) << "cap_clear_flag(PEMITTED) failed";
