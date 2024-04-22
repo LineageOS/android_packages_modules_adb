@@ -15,6 +15,7 @@
 //
 
 package {
+    default_team: "trendy_team_native_tools_libraries",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "packages_modules_adb_license"
@@ -47,5 +48,8 @@ cc_test {
         "libadb_sysdeps",
     ],
 
-    test_suites: ["general-tests", "mts-adbd"],
+    test_suites: [
+        "general-tests",
+        "mts-adbd",
+    ],
 }

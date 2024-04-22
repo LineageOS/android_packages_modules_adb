@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package {
+    default_team: "trendy_team_native_tools_libraries",
     default_applicable_licenses: ["packages_modules_adb_license"],
 }
 
@@ -48,7 +49,7 @@ cc_defaults {
         "-Wno-missing-field-initializers",
         "-Wthread-safety",
         "-Wvla",
-        "-DADB_HOST=1",         // overridden by adbd_defaults
+        "-DADB_HOST=1", // overridden by adbd_defaults
         "-DANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONVERSION=1",
     ],
     cpp_std: "experimental",
@@ -113,7 +114,10 @@ cc_defaults {
     name: "adbd_defaults",
     defaults: ["adb_defaults"],
 
-    cflags: ["-UADB_HOST", "-DADB_HOST=0"],
+    cflags: [
+        "-UADB_HOST",
+        "-DADB_HOST=0",
+    ],
 }
 
 cc_defaults {
@@ -171,7 +175,7 @@ library_linking_strategy_cc_defaults {
         "libselinux",
     ],
 
-    soong_config_variables:{
+    soong_config_variables: {
         library_linking_strategy: {
             prefer_static: {
                 static_libs: [
@@ -402,7 +406,7 @@ cc_test_host {
     test_options: {
         // TODO(b/247985207) remove "no-remote" tag when b/247985207 is fixed.
         tags: ["no-remote"],
-    }
+    },
 }
 
 cc_binary_host {
@@ -430,7 +434,7 @@ cc_binary_host {
 
     generated_headers: [
         "bin2c_fastdeployagent",
-        "bin2c_fastdeployagentscript"
+        "bin2c_fastdeployagentscript",
     ],
 
     static_libs: [
@@ -502,7 +506,10 @@ cc_binary_host {
 // libadbd_core contains the common sources to build libadbd and libadbd_services.
 cc_library_static {
     name: "libadbd_core",
-    defaults: ["adbd_defaults", "host_adbd_supported"],
+    defaults: [
+        "adbd_defaults",
+        "host_adbd_supported",
+    ],
     recovery_available: true,
 
     // libminadbd wants both, as it's used to build native tests.
@@ -551,7 +558,7 @@ cc_library_static {
                 "daemon/usb.cpp",
                 "daemon/usb_ffs.cpp",
                 "daemon/watchdog.cpp",
-            ]
+            ],
         },
         recovery: {
             exclude_shared_libs: [
@@ -559,7 +566,7 @@ cc_library_static {
                 "libadb_pairing_connection",
                 "libapp_processes_protos_lite",
             ],
-        }
+        },
     },
 
     min_sdk_version: "30",
@@ -575,7 +582,10 @@ cc_library_static {
 
 cc_library {
     name: "libadbd_services",
-    defaults: ["adbd_defaults", "host_adbd_supported"],
+    defaults: [
+        "adbd_defaults",
+        "host_adbd_supported",
+    ],
     recovery_available: true,
     compile_multilib: "both",
 
@@ -659,7 +669,10 @@ cc_library {
 
 cc_library {
     name: "libadbd",
-    defaults: ["adbd_defaults", "host_adbd_supported"],
+    defaults: [
+        "adbd_defaults",
+        "host_adbd_supported",
+    ],
     recovery_available: true,
     min_sdk_version: "30",
     apex_available: ["com.android.adbd"],
@@ -706,9 +719,8 @@ cc_library {
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
             ],
-        }
+        },
     },
-
 
     visibility: [
         "//bootable/recovery/minadbd",
@@ -718,7 +730,11 @@ cc_library {
 
 cc_binary {
     name: "adbd",
-    defaults: ["adbd_defaults", "host_adbd_supported", "libadbd_binary_dependencies"],
+    defaults: [
+        "adbd_defaults",
+        "host_adbd_supported",
+        "libadbd_binary_dependencies",
+    ],
     recovery_available: true,
     min_sdk_version: "30",
     apex_available: ["com.android.adbd"],
@@ -757,7 +773,7 @@ cc_binary {
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
             ],
-        }
+        },
     },
 }
 
@@ -833,7 +849,10 @@ ADBD_TEST_LIBS = [
 cc_test {
     name: "adbd_test",
 
-    defaults: ["adbd_defaults", "libadbd_binary_dependencies"],
+    defaults: [
+        "adbd_defaults",
+        "libadbd_binary_dependencies",
+    ],
 
     recovery_available: false,
     srcs: libadb_test_srcs + [
@@ -871,7 +890,10 @@ cc_test {
     // adbd_test uses the static version of these libraries above, so exclude them here.
     exclude_shared_libs: ADBD_TEST_LIBS,
 
-    test_suites: ["general-tests", "mts-adbd"],
+    test_suites: [
+        "general-tests",
+        "mts-adbd",
+    ],
     require_root: true,
 }
 
