@@ -93,6 +93,10 @@ This pipeline is detailed in [daemon/jdwp_service.cpp](daemon/jdwp_service.cpp) 
 - platform/dalvik/+/main/docs/debugmon.html
 - platform/dalvik/+/main/docs/debugger.html
 
+### Sync protocol
+
+To transfer files and directories, ADB places a smart-socket in SYNC mode and then issues SYNC commands. The SYNC protocol is documented in [SYNC.TXT](SYNC.TXT).
+
 ### Benchmark sample run for Pixel 8,USB
 
 ```
