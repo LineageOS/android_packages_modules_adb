@@ -139,19 +139,8 @@ struct Connection {
 
     static std::unique_ptr<Connection> FromFd(unique_fd fd);
 
-    enum ConnectionSpeed {
-        UNKNOWN = 0,
-        USB1_0 = 1,
-        USB2_0_FULL = 12,
-        USB2_0_HIGH = 480,
-        USB3_0 = 5000,
-        USB3_1 = 10000,
-        USB3_2 = 20000,
-        USB4_0 = 40000,
-    };
-
-    virtual ConnectionSpeed NegotiatedSpeedMbps() { return UNKNOWN; }
-    virtual ConnectionSpeed MaxSpeedMbps() { return UNKNOWN; }
+    virtual uint64_t NegotiatedSpeedMbps() { return 0; }
+    virtual uint64_t MaxSpeedMbps() { return 0; }
 };
 
 // Abstraction for a blocking packet transport.
