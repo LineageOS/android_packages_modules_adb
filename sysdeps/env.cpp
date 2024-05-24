@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <stdlib.h>
+
 #include "sysdeps/env.h"
 
 #ifdef _WIN32
