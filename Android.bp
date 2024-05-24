@@ -880,6 +880,8 @@ cc_test {
         "liblog",
     ],
 
+    version_script: "adbd_test.map",
+    stl: "libc++_static",
     static_libs: ADBD_TEST_LIBS,
 
     // Shared lib versions of static libs can potentially come from
