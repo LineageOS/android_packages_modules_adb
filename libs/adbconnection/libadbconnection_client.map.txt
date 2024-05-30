@@ -24,7 +24,7 @@ LIBADBCONNECTION_CLIENT_1 {
     *;
 };
 
-LIBADBCONNECTION_CLIENT_36 { # introduced=36
+LIBADBCONNECTION_CLIENT_37 { # introduced=37
   global:
     adbconnection_client_set_current_process_name; # apex
     adbconnection_client_add_application; # apex
