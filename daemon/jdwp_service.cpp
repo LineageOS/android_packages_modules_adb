@@ -33,7 +33,6 @@
 #include <thread>
 #include <vector>
 
-#include <adbconnection/process_info.h>
 #include <adbconnection/server.h>
 #include <android-base/cmsg.h>
 #include <android-base/unique_fd.h>
@@ -153,6 +152,7 @@ struct JdwpProcess {
         this->socket = socket;
         this->process = process;
         this->fde = fdevent_create(socket.release(), jdwp_process_event, this);
+        fdevent_set(this->fde, FDE_READ);
 
         if (!this->fde) {
             LOG(FATAL) << "could not create fdevent for new JDWP process";
@@ -218,10 +218,7 @@ static size_t app_process_list(char* buffer, size_t bufferlen) {
     for (auto& proc : _jdwp_list) {
         if (!proc->process.debuggable && !proc->process.profileable) continue;
         auto* entry = temp.add_process();
-        entry->set_pid(proc->process.pid);
-        entry->set_debuggable(proc->process.debuggable);
-        entry->set_profileable(proc->process.profileable);
-        entry->set_architecture(proc->process.arch_name, proc->process.arch_name_length);
+        *entry = std::move(proc->process.toProtobuf());
         temp.SerializeToString(&serialized_message);
         if (serialized_message.size() > bufferlen) {
             D("truncating app process list (max len = %zu)", bufferlen);
@@ -264,9 +261,16 @@ static void jdwp_process_event(int socket, unsigned events, void* _proc) {
     CHECK_EQ(socket, proc->socket.get());
 
     if (events & FDE_READ) {
-        // We already have the PID, if we can read from the socket, we've probably hit EOF.
-        D("terminating JDWP connection %" PRId64, proc->process.pid);
-        goto CloseProcess;
+        auto process_info = readProcessInfoFromSocket(socket);
+
+        // Unable to get a process info, the remote app process either died or errored
+        if (!process_info) {
+            goto CloseProcess;
+        }
+
+        proc->process = std::move(*process_info);
+        jdwp_process_list_updated();
+        app_process_list_updated();
     }
 
     if (events & FDE_WRITE) {

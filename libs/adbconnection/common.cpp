@@ -34,3 +34,40 @@ std::tuple<sockaddr_un, socklen_t> get_control_socket_addr() {
 
   return {addr, addrlen};
 }
+
+adb::proto::ProcessEntry ProcessInfo::toProtobuf() const {
+  adb::proto::ProcessEntry process;
+  process.set_pid(pid);
+  process.set_user_id(user_id);
+  process.set_debuggable(debuggable);
+  process.set_profileable(profileable);
+  process.set_architecture(architecture);
+  process.set_process_name(process_name);
+  for (std::string package_name : package_names) {
+    process.add_package_names(package_name);
+  }
+  process.set_waiting_for_debugger(waiting_for_debugger);
+  process.set_uid(uid);
+  return process;
+}
+
+std::optional<ProcessInfo> ProcessInfo::parseProtobufString(const std::string& proto) {
+  adb::proto::ProcessEntry process_entry_proto;
+  if (!process_entry_proto.ParseFromString(proto)) {
+    return {};
+  }
+
+  ProcessInfo process_info;
+  process_info.pid = process_entry_proto.pid();
+  process_info.user_id = process_entry_proto.user_id();
+  process_info.debuggable = process_entry_proto.debuggable();
+  process_info.profileable = process_entry_proto.profileable();
+  process_info.architecture = process_entry_proto.architecture();
+  process_info.process_name = process_entry_proto.process_name();
+  for (int i = 0; i < process_entry_proto.package_names_size(); i++) {
+    process_info.package_names.insert(process_entry_proto.package_names(i));
+  }
+  process_info.waiting_for_debugger = process_entry_proto.waiting_for_debugger();
+  process_info.uid = process_entry_proto.uid();
+  return process_info;
+}

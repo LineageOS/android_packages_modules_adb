@@ -2094,7 +2094,17 @@ int adb_commandline(int argc, const char** argv) {
             error_exit("track-app is not supported by the device");
         }
         TrackAppStreamsCallback callback;
-        return adb_connect_command("track-app", nullptr, &callback);
+        if (argc == 1) {
+            return adb_connect_command("track-app", nullptr, &callback);
+        } else if (argc == 2) {
+            if (!strcmp(argv[1], "--proto-binary")) {
+                return adb_connect_command("track-app");
+            } else if (!strcmp(argv[1], "--proto-text")) {
+                return adb_connect_command("track-app", nullptr, &callback);
+            }
+        } else {
+            error_exit("usage: adb track-app [--proto-binary][--proto-text]");
+        }
     } else if (!strcmp(argv[0], "track-devices")) {
         const char* listopt;
         if (argc < 2) {
