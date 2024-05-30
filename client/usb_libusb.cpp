@@ -491,28 +491,30 @@ struct LibusbConnection : public Connection {
     }
 
     // libusb gives us an int which is a value from 'enum libusb_speed'
-    static ConnectionSpeed ToConnectionSpeed(int speed) {
+    static uint64_t ToConnectionSpeed(int speed) {
         switch (speed) {
             case LIBUSB_SPEED_LOW:
-                return USB1_0;
+                return 1;
             case LIBUSB_SPEED_FULL:
-                return USB2_0_FULL;
+                return 12;
             case LIBUSB_SPEED_HIGH:
-                return USB2_0_HIGH;
+                return 480;
             case LIBUSB_SPEED_SUPER:
-                return USB3_0;
+                return 5000;
             case LIBUSB_SPEED_SUPER_PLUS:
-                return USB3_1;
+                return 10000;
+            case LIBUSB_SPEED_SUPER_PLUS_X2:
+                return 20000;
             case LIBUSB_SPEED_UNKNOWN:
             default:
-                return UNKNOWN;
+                return 0;
         }
     }
 
     // libusb gives us a bitfield made of 'enum libusb_supported_speed' values
-    static ConnectionSpeed ExtractMaxSpeed(uint16_t wSpeedSupported) {
+    static uint64_t ExtractMaxSuperSpeed(uint16_t wSpeedSupported) {
         if (wSpeedSupported == 0) {
-            return UNKNOWN;
+            return 0;
         }
 
         int msb = 0;
@@ -522,40 +524,65 @@ struct LibusbConnection : public Connection {
 
         switch (1 << msb) {
             case LIBUSB_LOW_SPEED_OPERATION:
-                return USB1_0;
+                return 1;
             case LIBUSB_FULL_SPEED_OPERATION:
-                return USB2_0_FULL;
+                return 12;
             case LIBUSB_HIGH_SPEED_OPERATION:
-                return USB2_0_HIGH;
+                return 480;
             case LIBUSB_SUPER_SPEED_OPERATION:
-                return USB3_0;
+                return 5000;
             default:
-                return UNKNOWN;
+                return 0;
         }
+    }
+
+    static uint64_t ExtractMaxSuperSpeedPlus(libusb_ssplus_usb_device_capability_descriptor* cap) {
+        // The exponents is one of {bytes, kB, MB, or GB}. We express speed in MB so we use a 0
+        // multiplier for value which would result in 0MB anyway.
+        static uint64_t exponent[] = {0, 0, 1, 1000};
+        uint64_t max_speed = 0;
+        for (uint8_t i = 0; i < cap->numSublinkSpeedAttributes; i++) {
+            libusb_ssplus_sublink_attribute* attr = &cap->sublinkSpeedAttributes[i];
+            uint64_t speed = attr->mantissa * exponent[attr->exponent];
+            max_speed = std::max(max_speed, speed);
+        }
+        return max_speed;
     }
 
     void RetrieveSpeeds() {
         negotiated_speed_ = ToConnectionSpeed(libusb_get_device_speed(device_.get()));
 
-        // The set of supported speed is in a SuperSpeed capability
+        // To discover the maximum speed supported by an USB device, we walk its capability
+        // descriptors.
         struct libusb_bos_descriptor* bos = nullptr;
-        if (!libusb_get_bos_descriptor(device_handle_.get(), &bos)) {
-            for (int i = 0; i < bos->bNumDeviceCaps; i++) {
-                if (bos->dev_capability[i]->bDevCapabilityType !=
-                    LIBUSB_BT_SS_USB_DEVICE_CAPABILITY) {
-                    continue;
-                }
-
-                libusb_ss_usb_device_capability_descriptor* ss_usb_device_cap = nullptr;
-                int r = libusb_get_ss_usb_device_capability_descriptor(
-                        nullptr, bos->dev_capability[i], &ss_usb_device_cap);
-                if (!r) {
-                    max_speed_ = ExtractMaxSpeed(ss_usb_device_cap->wSpeedSupported);
-                    libusb_free_ss_usb_device_capability_descriptor(ss_usb_device_cap);
-                }
-            }
-            libusb_free_bos_descriptor(bos);
+        if (libusb_get_bos_descriptor(device_handle_.get(), &bos)) {
+            return;
         }
+
+        for (int i = 0; i < bos->bNumDeviceCaps; i++) {
+            switch (bos->dev_capability[i]->bDevCapabilityType) {
+                case LIBUSB_BT_SS_USB_DEVICE_CAPABILITY: {
+                    libusb_ss_usb_device_capability_descriptor* cap = nullptr;
+                    if (!libusb_get_ss_usb_device_capability_descriptor(
+                                nullptr, bos->dev_capability[i], &cap)) {
+                        max_speed_ =
+                                std::max(max_speed_, ExtractMaxSuperSpeed(cap->wSpeedSupported));
+                        libusb_free_ss_usb_device_capability_descriptor(cap);
+                    }
+                } break;
+                case LIBUSB_BT_SUPERSPEED_PLUS_CAPABILITY: {
+                    libusb_ssplus_usb_device_capability_descriptor* cap = nullptr;
+                    if (!libusb_get_ssplus_usb_device_capability_descriptor(
+                                nullptr, bos->dev_capability[i], &cap)) {
+                        max_speed_ = std::max(max_speed_, ExtractMaxSuperSpeedPlus(cap));
+                        libusb_free_ssplus_usb_device_capability_descriptor(cap);
+                    }
+                } break;
+                default:
+                    break;
+            }
+        }
+        libusb_free_bos_descriptor(bos);
     }
 
     bool OpenDevice(std::string* error) {
@@ -832,9 +859,9 @@ struct LibusbConnection : public Connection {
         return connection;
     }
 
-    virtual ConnectionSpeed MaxSpeedMbps() override final { return max_speed_; }
+    virtual uint64_t MaxSpeedMbps() override final { return max_speed_; }
 
-    virtual ConnectionSpeed NegotiatedSpeedMbps() override final { return negotiated_speed_; }
+    virtual uint64_t NegotiatedSpeedMbps() override final { return negotiated_speed_; }
 
     unique_device device_;
     unique_device_handle device_handle_;
@@ -862,8 +889,8 @@ struct LibusbConnection : public Connection {
 
     size_t zero_mask_ = 0;
 
-    ConnectionSpeed negotiated_speed_ = UNKNOWN;
-    ConnectionSpeed max_speed_ = UNKNOWN;
+    uint64_t negotiated_speed_ = 0;
+    uint64_t max_speed_ = 0;
 };
 
 static std::mutex usb_handles_mutex [[clang::no_destroy]];
