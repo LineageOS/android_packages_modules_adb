@@ -68,6 +68,13 @@ using android::base::Dirname;
 using android::base::Realpath;
 using android::base::StringPrintf;
 
+static bool should_use_fs_config() {
+    // Only root has the necessary permissions to be able to apply fs_config.
+    // We can't move this check to adbd_fs_config for backwards compatibility
+    // with old versions of adbd_fs_config, which did not include the check.
+    return getuid() == 0;
+}
+
 static bool update_capabilities(const char* path, uint64_t capabilities) {
 #if defined(__ANDROID__)
     if (capabilities == 0) {
@@ -109,7 +116,9 @@ static bool secure_mkdirs(const std::string& path) {
         }
         partial_path += path_component;
 
-        adbd_fs_config(partial_path.c_str(), true, nullptr, &uid, &gid, &mode, &capabilities);
+        if (should_use_fs_config()) {
+            adbd_fs_config(partial_path.c_str(), true, nullptr, &uid, &gid, &mode, &capabilities);
+        }
         if (adb_mkdir(partial_path.c_str(), mode) == -1) {
             if (errno != EEXIST) {
                 return false;
@@ -518,7 +527,7 @@ static bool send_impl(int s, const std::string& path, mode_t mode, CompressionTy
         uid_t uid = -1;
         gid_t gid = -1;
         uint64_t capabilities = 0;
-        if (!dry_run) {
+        if (!dry_run && should_use_fs_config()) {
             adbd_fs_config(path.c_str(), false, nullptr, &uid, &gid, &mode, &capabilities);
         }
 
