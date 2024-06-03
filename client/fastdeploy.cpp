@@ -160,7 +160,8 @@ static std::string get_package_name_from_apk(const char* apk_path) {
         error_exit("Could not find AndroidManifest.xml inside %s", apk_path);
     }
     uint32_t manifest_len = 0;
-    if (!zip_file->getEntryInfo(entry, NULL, &manifest_len, NULL, NULL, NULL, NULL)) {
+    if (!zip_file->getEntryInfo(entry, nullptr, &manifest_len, nullptr, nullptr, nullptr, nullptr,
+                                nullptr)) {
         error_exit("Could not read AndroidManifest.xml inside %s", apk_path);
     }
     std::vector<char> manifest_data(manifest_len);
