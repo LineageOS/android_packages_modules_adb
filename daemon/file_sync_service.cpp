@@ -68,11 +68,21 @@ using android::base::Dirname;
 using android::base::Realpath;
 using android::base::StringPrintf;
 
-static bool should_use_fs_config() {
-    // Only root has the necessary permissions to be able to apply fs_config.
-    // We can't move this check to adbd_fs_config for backwards compatibility
-    // with old versions of adbd_fs_config, which did not include the check.
-    return getuid() == 0;
+// TODO(b/346842318): Delete this function once we no longer need compatibility with < V.
+static bool should_use_fs_config([[maybe_unused]] const std::string& path) {
+    // adbd_fs_config comes from the system, which means that it could be old. Old versions of
+    // adbd_fs_config will rewrite the permissions unconditionally, which would prevent the host
+    // permissions from ever being used. We can't check getuid() == 0 here to defend against old
+    // versions of adbd_fs_config because we have tests that push files as root and expect them to
+    // have the host permissions. So if we are running on an old system, follow the logic from
+    // prior to https://r.android.com/2980341 i.e. leave behavior unchanged unless the system is
+    // updated as well.
+#if defined(__ANDROID__)
+    if (android_get_device_api_level() < __ANDROID_API_V__) {
+        return !android::base::StartsWith(path, "/data/");
+    }
+#endif
+    return true;
 }
 
 static bool update_capabilities(const char* path, uint64_t capabilities) {
@@ -116,7 +126,7 @@ static bool secure_mkdirs(const std::string& path) {
         }
         partial_path += path_component;
 
-        if (should_use_fs_config()) {
+        if (should_use_fs_config(partial_path)) {
             adbd_fs_config(partial_path.c_str(), true, nullptr, &uid, &gid, &mode, &capabilities);
         }
         if (adb_mkdir(partial_path.c_str(), mode) == -1) {
@@ -527,7 +537,7 @@ static bool send_impl(int s, const std::string& path, mode_t mode, CompressionTy
         uid_t uid = -1;
         gid_t gid = -1;
         uint64_t capabilities = 0;
-        if (!dry_run && should_use_fs_config()) {
+        if (!dry_run && should_use_fs_config(path)) {
             adbd_fs_config(path.c_str(), false, nullptr, &uid, &gid, &mode, &capabilities);
         }
 
