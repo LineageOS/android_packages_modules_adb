@@ -249,7 +249,7 @@ static void help() {
         "environment variables:\n"
         " $ADB_TRACE\n"
         "     comma/space separated list of debug info to log:\n"
-        "     all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp\n"
+        "     all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp,services,auth,fdevent,shell,incremental\n"
         " $ADB_VENDOR_KEYS         colon-separated list of keys (files or directories)\n"
         " $ANDROID_SERIAL          serial number to connect to (see -s)\n"
         " $ANDROID_LOG_TAGS        tags to be used by logcat (see logcat --help)\n"
