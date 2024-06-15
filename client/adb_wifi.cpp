@@ -58,8 +58,6 @@ struct PairingResultWaiter {
     }
 };  // PairingResultWaiter
 
-void adb_wifi_init() {}
-
 static std::vector<uint8_t> stringToUint8(const std::string& str) {
     auto* p8 = reinterpret_cast<const uint8_t*>(str.data());
     return std::vector<uint8_t>(p8, p8 + str.length());

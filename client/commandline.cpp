@@ -139,7 +139,7 @@ static void help() {
         "file transfer:\n"
         " push [--sync] [-z ALGORITHM] [-Z] LOCAL... REMOTE\n"
         "     copy local files/directories to device\n"
-        "     --sync: only push files that are newer on the host than the device\n"
+        "     --sync: only push files that have different timestamps on the host than the device\n"
         "     -n: dry run: push files to device without storing to the filesystem\n"
         "     -z: enable compression with a specified algorithm (any/none/brotli/lz4/zstd)\n"
         "     -Z: disable compression\n"
@@ -288,7 +288,8 @@ static void stdin_raw_restore() {
 #endif
 
 int read_and_dump_protocol(borrowed_fd fd, StandardStreamsCallbackInterface* callback) {
-    int exit_code = 0;
+    // OpenSSH returns 255 on unexpected disconnection.
+    int exit_code = 255;
     std::unique_ptr<ShellProtocol> protocol = std::make_unique<ShellProtocol>(fd);
     if (!protocol) {
       LOG(ERROR) << "failed to allocate memory for ShellProtocol object";

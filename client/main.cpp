@@ -132,7 +132,6 @@ int adb_server_main(int is_daemon, const std::string& socket_spec, const char* o
 
     init_reconnect_handler();
 
-    adb_wifi_init();
     if (!getenv("ADB_MDNS") || strcmp(getenv("ADB_MDNS"), "0") != 0) {
         init_mdns_transport_discovery();
     }
@@ -158,7 +157,7 @@ int adb_server_main(int is_daemon, const std::string& socket_spec, const char* o
     // If we told a previous adb server to quit because of version mismatch, we can get to this
     // point before it's finished exiting. Retry for a while to give it some time. Don't actually
     // accept any connections until adb_wait_for_device_initialization finishes below.
-    while (install_listener(socket_spec, "*smartsocket*", nullptr, INSTALL_LISTENER_DISABLED,
+    while (install_listener(socket_spec, kSmartSocketConnectTo, nullptr, INSTALL_LISTENER_DISABLED,
                             nullptr, &error) != INSTALL_STATUS_OK) {
         if (std::chrono::steady_clock::now() - start > 0.5s) {
             LOG(FATAL) << "could not install *smartsocket* listener: " << error;

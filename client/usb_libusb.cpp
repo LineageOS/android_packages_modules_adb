@@ -1029,7 +1029,8 @@ void usb_init() {
     VLOG(USB) << "initializing libusb...";
     int rc = libusb_init(nullptr);
     if (rc != 0) {
-        LOG(FATAL) << "failed to initialize libusb: " << libusb_error_name(rc);
+        LOG(WARNING) << "failed to initialize libusb: " << libusb_error_name(rc);
+        return;
     }
 
     // Register the hotplug callback.
