@@ -123,7 +123,7 @@ bool adb_DNSServiceShouldAutoConnect(std::string_view reg_type, std::string_view
         (index != kADBTransportServiceRefIndex && index != kADBSecureConnectServiceRefIndex)) {
         return false;
     }
-    if (g_autoconn_allowedlist.find(*index) == g_autoconn_allowedlist.end()) {
+    if (!g_autoconn_allowedlist.contains(*index)) {
         D("Auto-connect for reg_type '%s' disabled", reg_type.data());
         return false;
     }

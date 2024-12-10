@@ -253,7 +253,14 @@ void usb_init() {
     std::thread(_power_notification_thread).detach();
 }
 
-void usb_cleanup() {}
+void usb_cleanup() {
+    // On Windows, shutting down the server without releasing USB interfaces makes claiming
+    // them again unstable upon next startup.
+    if (is_libusb_enabled()) {
+        VLOG(USB) << "Windows libusb cleanup";
+        close_usb_devices();
+    }
+}
 
 usb_handle* do_usb_open(const wchar_t* interface_name) {
     unsigned long name_len = 0;

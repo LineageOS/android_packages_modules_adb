@@ -145,7 +145,7 @@ cc_library_host_static {
 }
 
 cc_defaults {
-    name: "libdevices_protos_defaults",
+    name: "adb_host_protos_defaults",
     cflags: [
         "-Wall",
         "-Wextra",
@@ -156,7 +156,7 @@ cc_defaults {
     compile_multilib: "both",
 
     srcs: [
-        "devices.proto",
+        ":adb_host_proto",
     ],
     target: {
         windows: {
@@ -178,8 +178,11 @@ cc_defaults {
 }
 
 cc_library_host_static {
-    name: "libdevices_protos",
-    defaults: ["libdevices_protos_defaults"],
+    name: "libadb_host_protos",
+    defaults: ["adb_host_protos_defaults"],
+    static_libs: [
+        "libprotobuf-cpp-full",
+    ],
 
     proto: {
         export_proto_headers: true,
@@ -187,3 +190,13 @@ cc_library_host_static {
     },
 }
 
+filegroup {
+    name: "adb_host_proto",
+    srcs: [
+        "adb_host.proto",
+    ],
+    visibility: [
+        "//packages/modules/adb:__subpackages__",
+        "//tools/asuite",
+    ],
+}

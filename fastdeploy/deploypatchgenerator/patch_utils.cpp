@@ -60,7 +60,7 @@ APKMetaData PatchUtils::GetHostAPKMetaData(const char* apkPath) {
     auto dump = archive.ExtractMetadata();
     if (dump.cd().empty()) {
         fprintf(stderr, "adb: Could not extract Central Directory from %s\n", apkPath);
-        error_exit("Aborting");
+        exit(1);
     }
 
     auto apkMetaData = GetDeviceAPKMetaData(dump);
@@ -70,7 +70,8 @@ APKMetaData PatchUtils::GetHostAPKMetaData(const char* apkPath) {
         auto dataSize =
                 archive.CalculateLocalFileEntrySize(apkEntry.dataoffset(), apkEntry.datasize());
         if (dataSize == 0) {
-            error_exit("Aborting");
+            fprintf(stderr, "adb: empty local file entry in %s\n", apkPath);
+            exit(1);
         }
         apkEntry.set_datasize(dataSize);
     }
@@ -101,7 +102,7 @@ void PatchUtils::Pipe(borrowed_fd input, borrowed_fd output, size_t amount) {
         auto readAmount = adb_read(input, buffer, chunkAmount);
         if (readAmount < 0) {
             fprintf(stderr, "adb: failed to read from input: %s\n", strerror(errno));
-            error_exit("Aborting");
+            exit(1);
         }
         WriteFdExactly(output, buffer, readAmount);
         transferAmount += readAmount;

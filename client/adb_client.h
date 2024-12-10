@@ -88,6 +88,9 @@ const std::optional<FeatureSet>& adb_get_feature_set(std::string* _Nullable erro
 std::optional<std::string> adb_get_server_executable_path();
 #endif
 
+[[noreturn]] void error_exit(const char* _Nonnull fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
+[[noreturn]] void perror_exit(const char* _Nonnull fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
+
 // Globally acccesible argv/envp, for the purpose of re-execing adb.
 extern const char* _Nullable * _Nullable __adb_argv;
 extern const char* _Nullable * _Nullable __adb_envp;

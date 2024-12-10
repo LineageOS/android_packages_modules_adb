@@ -240,7 +240,7 @@ static void adbd_key_removed(const char* public_key, size_t len) {
     kick_all_transports_by_auth_key(auth_key);
 }
 
-void adbd_auth_init(void) {
+void adbd_auth_init() {
     AdbdAuthCallbacksV1 cb;
     cb.version = 1;
     cb.key_authorized = adbd_auth_key_authorized;

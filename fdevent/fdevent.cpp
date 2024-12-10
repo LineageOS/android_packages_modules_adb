@@ -155,7 +155,7 @@ void fdevent_context::HandleEvents(const std::vector<fdevent_event>& events) {
     for (const auto& event : events) {
         // Verify the fde is still installed before invoking it.  It could have been unregistered
         // and destroyed inside an earlier event handler.
-        if (this->fdevent_set_.find(event.fde) != this->fdevent_set_.end()) {
+        if (this->fdevent_set_.contains(event.fde)) {
             invoke_fde(event.fde, event.events);
             break;
         }

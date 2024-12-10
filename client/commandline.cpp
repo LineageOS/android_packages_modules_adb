@@ -56,6 +56,7 @@
 #include "adb.h"
 #include "adb_auth.h"
 #include "adb_client.h"
+#include "adb_host.pb.h"
 #include "adb_install.h"
 #include "adb_io.h"
 #include "adb_unique_fd.h"
@@ -1371,6 +1372,37 @@ static int adb_connect_command(const std::string& command, TransportId* transpor
     return adb_connect_command(command, transport, &DEFAULT_STANDARD_STREAMS_CALLBACK);
 }
 
+// A class to convert server status binary protobuf to text protobuf.
+class AdbServerStateStreamsCallback : public DefaultStandardStreamsCallback {
+  public:
+    AdbServerStateStreamsCallback() : DefaultStandardStreamsCallback(nullptr, nullptr) {}
+
+    bool OnStdout(const char* buffer, size_t length) override {
+        return OnStream(&output_, nullptr, buffer, length, false);
+    }
+
+    int Done(int status) {
+        if (output_.size() < 4) {
+            return OnStream(nullptr, stdout, output_.data(), output_.length(), false);
+        }
+
+        // Skip the 4-hex prefix
+        std::string binary_proto_bytes{output_.substr(4)};
+
+        ::adb::proto::AdbServerStatus binary_proto;
+        binary_proto.ParseFromString(binary_proto_bytes);
+
+        std::string string_proto;
+        google::protobuf::TextFormat::PrintToString(binary_proto, &string_proto);
+
+        return OnStream(nullptr, stdout, string_proto.data(), string_proto.length(), false);
+    }
+
+  private:
+    std::string output_;
+    DISALLOW_COPY_AND_ASSIGN(AdbServerStateStreamsCallback);
+};
+
 // A class that prints out human readable form of the protobuf message for "track-app" service
 // (received in binary format).
 class TrackAppStreamsCallback : public DefaultStandardStreamsCallback {
@@ -2195,6 +2227,9 @@ int adb_commandline(int argc, const char** argv) {
         }
         printf("%s\n", result.c_str());
         return 0;
+    } else if (!strcmp(argv[0], "server-status")) {
+        AdbServerStateStreamsCallback callback;
+        return adb_connect_command("host:server-status", nullptr, &callback);
     }
 
     error_exit("unknown command %s", argv[0]);

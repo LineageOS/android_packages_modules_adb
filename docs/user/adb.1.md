@@ -270,6 +270,7 @@ jdwp
 logcat
 &nbsp;&nbsp;&nbsp;&nbsp;Show device log (logcat --help for more).
 
+server-status Display server configuration (USB backend, mDNS backend, log location, binary path. See [adb_host.proto](../../proto/adb_host.proto) (AdbServerStatus) for details.
 
 # SECURITY:
 
@@ -369,7 +370,7 @@ features
 # ENVIRONMENT VARIABLES
 
 $ADB_TRACE
-&nbsp;&nbsp;&nbsp;&nbsp;Comma (or space) separated list of debug info to log: all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp,services,auth,fdevent,shell,incremental.
+&nbsp;&nbsp;&nbsp;&nbsp;Comma (or space) separated list of debug info to log: all,adb,sockets,packets,rwx,usb,sync,sysdeps,transport,jdwp,services,auth,fdevent,shell,incremental, mdns.
 
 $ADB_VENDOR_KEYS
 &nbsp;&nbsp;&nbsp;&nbsp;Colon-separated list of keys (files or directories).

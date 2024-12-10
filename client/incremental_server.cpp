@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,6 +35,7 @@
 #include <unordered_set>
 
 #include "adb.h"
+#include "adb_client.h"
 #include "adb_io.h"
 #include "adb_trace.h"
 #include "adb_unique_fd.h"

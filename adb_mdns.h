@@ -65,7 +65,7 @@ std::optional<int> adb_DNSServiceIndexByName(std::string_view reg_type);
 // See ADB_MDNS_AUTO_CONNECT environment variable for more info.
 bool adb_DNSServiceShouldAutoConnect(std::string_view service_name, std::string_view instance_name);
 
-void mdns_cleanup(void);
+void mdns_cleanup();
 std::string mdns_check();
 std::string mdns_list_discovered_services();
 
@@ -84,11 +84,11 @@ std::optional<MdnsInfo> mdns_get_pairing_service_info(const std::string& name);
 
 // TODO: Remove once openscreen has support for bonjour client APIs.
 struct AdbMdnsResponderFuncs {
-    std::string (*_Nonnull mdns_check)(void);
-    std::string (*_Nonnull mdns_list_discovered_services)(void);
+    std::string (*_Nonnull mdns_check)();
+    std::string (*_Nonnull mdns_list_discovered_services)();
     std::optional<MdnsInfo> (*_Nonnull mdns_get_connect_service_info)(const std::string&);
     std::optional<MdnsInfo> (*_Nonnull mdns_get_pairing_service_info)(const std::string&);
-    void (*_Nonnull mdns_cleanup)(void);
+    void (*_Nonnull mdns_cleanup)();
     bool (*_Nonnull adb_secure_connect_by_service_name)(const std::string&);
 };  // AdbBonjourCallbacks
 

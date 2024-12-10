@@ -17,7 +17,7 @@
 #include "adb_unique_fd.h"
 #include "socket.h"
 
-int init_jdwp(void);
+int init_jdwp();
 asocket* create_jdwp_service_socket();
 asocket* create_jdwp_tracker_service_socket();
 asocket* create_app_tracker_service_socket();

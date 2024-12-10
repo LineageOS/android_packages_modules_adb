@@ -471,19 +471,21 @@ atransport* acquire_one_transport(TransportType type, const char* serial, Transp
                                   bool* is_ambiguous, std::string* error_out,
                                   bool accept_any_state = false);
 void kick_transport(atransport* t, bool reset = false);
-void update_transports(void);
+void update_transports();
 
 // Iterates across all of the current and pending transports.
 // Stops iteration and returns false if fn returns false, otherwise returns true.
 bool iterate_transports(std::function<bool(const atransport*)> fn);
 
-void init_reconnect_handler(void);
-void init_mdns_transport_discovery(void);
+void init_reconnect_handler();
+void init_mdns_transport_discovery();
 
 #if ADB_HOST
 atransport* find_transport(const char* serial);
 
 void kick_all_tcp_devices();
+
+bool using_bonjour(void);
 #endif
 
 void kick_all_transports();

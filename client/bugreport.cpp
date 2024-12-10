@@ -26,6 +26,7 @@
 #include <android-base/file.h>
 #include <android-base/strings.h>
 
+#include "adb_client.h"
 #include "adb_utils.h"
 #include "client/file_sync_client.h"
 

@@ -1,3 +1,4 @@
+```
 This file tries to document file-related requests a client can make
 to the ADB server of an adbd daemon. See the OVERVIEW.TXT document
 to understand what's going on here. See the SERVICES.TXT to learn more
@@ -78,3 +79,4 @@ until the file is transferred. Each chunk will not be larger than 64k.
 
 When the file is transferred a sync response "DONE" is retrieved where the
 length can be ignored.
+```

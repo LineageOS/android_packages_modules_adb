@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRANSPORT
+#define TRACE_TAG MDNS
 
 #include "transport.h"
 
@@ -84,6 +84,7 @@ class DiscoveryReportingClient : public discovery::ReportingClient {
 };
 
 struct DiscoveryState {
+    std::optional<discovery::Config> config;
     SerialDeletePtr<discovery::DnsSdService> service;
     std::unique_ptr<DiscoveryReportingClient> reporting_client;
     std::unique_ptr<AdbOspTaskRunner> task_runner;
@@ -95,10 +96,10 @@ struct DiscoveryState {
 void OnServiceReceiverResult(std::vector<std::reference_wrapper<const ServiceInfo>> infos,
                              std::reference_wrapper<const ServiceInfo> info,
                              ServicesUpdatedState state) {
-    LOG(INFO) << "Endpoint state=" << static_cast<int>(state)
-              << " instance_name=" << info.get().instance_name
-              << " service_name=" << info.get().service_name << " addr=" << info.get().v4_address
-              << " addrv6=" << info.get().v6_address << " total_serv=" << infos.size();
+    VLOG(MDNS) << "Endpoint state=" << static_cast<int>(state)
+               << " instance_name=" << info.get().instance_name
+               << " service_name=" << info.get().service_name << " addr=" << info.get().v4_address
+               << " addrv6=" << info.get().v6_address << " total_serv=" << infos.size();
 
     switch (state) {
         case ServicesUpdatedState::EndpointCreated:
@@ -114,13 +115,14 @@ void OnServiceReceiverResult(std::vector<std::reference_wrapper<const ServiceInf
                 // Don't try to auto-connect if not in the keystore.
                 if (*index == kADBSecureConnectServiceRefIndex &&
                     !adb_wifi_is_known_host(info.get().instance_name)) {
-                    LOG(INFO) << "instance_name=" << info.get().instance_name << " not in keystore";
+                    VLOG(MDNS) << "instance_name=" << info.get().instance_name
+                               << " not in keystore";
                     return;
                 }
                 std::string response;
-                LOG(INFO) << "Attempting to auto-connect to instance=" << info.get().instance_name
-                          << " service=" << info.get().service_name << " addr4=%s"
-                          << info.get().v4_address << ":" << info.get().port;
+                VLOG(MDNS) << "Attempting to auto-connect to instance=" << info.get().instance_name
+                           << " service=" << info.get().service_name << " addr4=%s"
+                           << info.get().v4_address << ":" << info.get().port;
                 connect_device(
                         android::base::StringPrintf("%s.%s", info.get().instance_name.c_str(),
                                                     info.get().service_name.c_str()),
@@ -136,15 +138,21 @@ std::optional<discovery::Config> GetConfigForAllInterfaces() {
     auto interface_infos = GetNetworkInterfaces();
 
     discovery::Config config;
+
+    // The host only consumes mDNS traffic. It doesn't publish anything.
+    // Avoid creating an mDNSResponder that will listen with authority
+    // to answer over no domain.
+    config.enable_publication = false;
+
     for (const auto interface : interface_infos) {
         if (interface.GetIpAddressV4() || interface.GetIpAddressV6()) {
             config.network_info.push_back({interface});
-            LOG(VERBOSE) << "Listening on interface [" << interface << "]";
+            VLOG(MDNS) << "Listening on interface [" << interface << "]";
         }
     }
 
     if (config.network_info.empty()) {
-        LOG(INFO) << "No available network interfaces for mDNS discovery";
+        VLOG(MDNS) << "No available network interfaces for mDNS discovery";
         return std::nullopt;
     }
 
@@ -158,13 +166,17 @@ void StartDiscovery() {
     g_state->reporting_client = std::make_unique<DiscoveryReportingClient>();
 
     g_state->task_runner->PostTask([]() {
-        auto config = GetConfigForAllInterfaces();
-        if (!config) {
+        g_state->config = GetConfigForAllInterfaces();
+        if (!g_state->config) {
+            VLOG(MDNS) << "No mDNS config. Aborting StartDiscovery()";
             return;
         }
 
-        g_state->service = discovery::CreateDnsSdService(g_state->task_runner.get(),
-                                                         g_state->reporting_client.get(), *config);
+        VLOG(MDNS) << "Starting discovery on " << (*g_state->config).network_info.size()
+                   << " interfaces";
+
+        g_state->service = discovery::CreateDnsSdService(
+                g_state->task_runner.get(), g_state->reporting_client.get(), *g_state->config);
         // Register a receiver for each service type
         for (int i = 0; i < kNumADBDNSServices; ++i) {
             auto receiver = std::make_unique<ServiceReceiver>(
@@ -184,7 +196,7 @@ void StartDiscovery() {
         }
 
         if (g_using_bonjour) {
-            LOG(INFO) << "Fallback to MdnsResponder client for discovery";
+            VLOG(MDNS) << "Fallback to MdnsResponder client for discovery";
             g_adb_mdnsresponder_funcs = StartMdnsResponderDiscovery();
         }
     });
@@ -208,7 +220,7 @@ void ForEachService(const std::unique_ptr<ServiceReceiver>& receiver,
 
 bool ConnectAdbSecureDevice(const MdnsInfo& info) {
     if (!adb_wifi_is_known_host(info.service_name)) {
-        LOG(INFO) << "serviceName=" << info.service_name << " not in keystore";
+        VLOG(MDNS) << "serviceName=" << info.service_name << " not in keystore";
         return false;
     }
 
@@ -224,22 +236,25 @@ bool ConnectAdbSecureDevice(const MdnsInfo& info) {
 }  // namespace
 
 /////////////////////////////////////////////////////////////////////////////////
+
+bool using_bonjour(void) {
+    return g_using_bonjour;
+}
+
 void mdns_cleanup() {
     if (g_using_bonjour) {
         return g_adb_mdnsresponder_funcs.mdns_cleanup();
     }
 }
 
-void init_mdns_transport_discovery(void) {
-    // TODO(joshuaduong): Use openscreen discovery by default for all platforms.
+void init_mdns_transport_discovery() {
     const char* mdns_osp = getenv("ADB_MDNS_OPENSCREEN");
-    if (mdns_osp && strcmp(mdns_osp, "1") == 0) {
-        LOG(INFO) << "Openscreen mdns discovery enabled";
-        StartDiscovery();
-    } else {
-        // Original behavior is to use Bonjour client.
+    if (mdns_osp && strcmp(mdns_osp, "0") == 0) {
         g_using_bonjour = true;
         g_adb_mdnsresponder_funcs = StartMdnsResponderDiscovery();
+    } else {
+        VLOG(MDNS) << "Openscreen mdns discovery enabled";
+        StartDiscovery();
     }
 }
 
@@ -249,7 +264,7 @@ bool adb_secure_connect_by_service_name(const std::string& instance_name) {
     }
 
     if (!g_state || g_state->receivers.empty()) {
-        LOG(INFO) << "Mdns not enabled";
+        VLOG(MDNS) << "Mdns not enabled";
         return false;
     }
 

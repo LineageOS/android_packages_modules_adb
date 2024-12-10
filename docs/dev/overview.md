@@ -1,3 +1,4 @@
+```
 Implementation notes regarding ADB.
 
 I. General Overview:
@@ -133,3 +134,4 @@ II. Protocol details:
     and the device/emulator they point to. The ADB server must handle
     unexpected transport disconnections (e.g. when a device is physically
     unplugged) properly.
+```

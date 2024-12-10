@@ -305,6 +305,7 @@ cc_library_host_static {
 
     static_libs: [
         "libadb_crypto",
+        "libadb_host_protos",
         "libadb_pairing_connection",
         "libadb_protos",
         "libadb_tls_connection",
@@ -313,7 +314,6 @@ cc_library_host_static {
         "libcrypto_utils",
         "libcutils",
         "libdiagnose_usb",
-        "libdevices_protos",
         "liblog",
         "libmdnssd",
         "libopenscreen-discovery",
@@ -374,6 +374,7 @@ cc_test_host {
     static_libs: [
         "libadb_crypto_static",
         "libadb_host",
+        "libadb_host_protos",
         "libadb_pairing_auth_static",
         "libadb_pairing_connection_static",
         "libadb_protos_static",
@@ -383,7 +384,6 @@ cc_test_host {
         "libcrypto",
         "libcrypto_utils",
         "libcutils",
-        "libdevices_protos",
         "libdiagnose_usb",
         "liblog",
         "libmdnssd",
@@ -408,8 +408,8 @@ cc_test_host {
     },
 }
 
-cc_binary_host {
-    name: "adb",
+cc_defaults {
+    name: "adb_binary_host_defaults",
 
     stl: "libc++_static",
     defaults: ["adb_defaults"],
@@ -439,6 +439,7 @@ cc_binary_host {
     static_libs: [
         "libadb_crypto",
         "libadb_host",
+        "libadb_host_protos",
         "libadb_pairing_auth",
         "libadb_pairing_connection",
         "libadb_protos",
@@ -452,7 +453,6 @@ cc_binary_host {
         "libcrypto_utils",
         "libcutils",
         "libdiagnose_usb",
-        "libdevices_protos",
         "libfastdeploy_host",
         "liblog",
         "liblog",
@@ -498,6 +498,38 @@ cc_binary_host {
             required: [
                 "AdbWinUsbApi",
             ],
+        },
+    },
+}
+
+cc_binary_host {
+    name: "adb",
+    defaults: ["adb_binary_host_defaults"],
+}
+
+cc_binary_host {
+    name: "adb_asan",
+    defaults: ["adb_binary_host_defaults"],
+    target: {
+        darwin: {
+            sanitize: {
+                address: true,
+            },
+            strip: {
+                none: true,
+            },
+        },
+        linux: {
+            sanitize: {
+                address: true,
+            },
+            strip: {
+                none: true,
+            },
+        },
+        // Not supported on Windows yet...
+        windows: {
+            enabled: false,
         },
     },
 }
@@ -963,7 +995,7 @@ python_test_host {
     main: "test_device.py",
     srcs: [
         "proto/app_processes.proto",
-        "proto/devices.proto",
+        ":adb_host_proto",
         "test_device.py",
     ],
     proto: {
@@ -1047,6 +1079,7 @@ cc_test_host {
     static_libs: [
         "libadb_crypto_static",
         "libadb_host",
+        "libadb_host_protos",
         "libadb_pairing_auth_static",
         "libadb_pairing_connection_static",
         "libadb_protos_static",
@@ -1057,7 +1090,6 @@ cc_test_host {
         "libcrypto",
         "libcrypto_utils",
         "libcutils",
-        "libdevices_protos",
         "libdiagnose_usb",
         "libfastdeploy_host",
         "liblog",

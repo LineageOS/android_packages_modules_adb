@@ -35,6 +35,7 @@
 #include "fastdeploycallbacks.h"
 #include "sysdeps.h"
 
+#include "adb_client.h"
 #include "adb_utils.h"
 
 static constexpr long kRequiredAgentVersion = 0x00000003;

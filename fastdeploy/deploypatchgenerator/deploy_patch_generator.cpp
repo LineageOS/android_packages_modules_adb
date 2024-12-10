@@ -164,7 +164,7 @@ void DeployPatchGenerator::GeneratePatch(const std::vector<SimpleEntry>& entries
     if (realSizeOut != currentSizeOut) {
         fprintf(stderr, "Size mismatch current %lld vs real %lld\n",
                 static_cast<long long>(currentSizeOut), static_cast<long long>(realSizeOut));
-        error_exit("Aborting");
+        exit(1);
     }
 
     if (newApkSize > currentSizeOut) {

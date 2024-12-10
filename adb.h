@@ -32,7 +32,6 @@
 
 constexpr size_t MAX_PAYLOAD_V1 = 4 * 1024;
 constexpr size_t MAX_PAYLOAD = 1024 * 1024;
-constexpr size_t MAX_FRAMEWORK_PAYLOAD = 64 * 1024;
 
 // When delayed acks are supported, the initial number of unacknowledged bytes we're willing to
 // receive on a socket before the other side should block.
@@ -180,7 +179,7 @@ bool handle_forward_request(const char* service,
                             int reply_fd);
 
 /* packet allocator */
-apacket* get_apacket(void);
+apacket* get_apacket();
 void put_apacket(apacket* p);
 
 // Define it if you want to dump packets.

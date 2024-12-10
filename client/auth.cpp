@@ -145,7 +145,7 @@ static bool load_key(const std::string& file) {
 
     std::lock_guard<std::mutex> lock(g_keys_mutex);
     std::string fingerprint = hash_key(key.get());
-    bool already_loaded = (g_keys.find(fingerprint) != g_keys.end());
+    bool already_loaded = g_keys.contains(fingerprint);
     if (!already_loaded) {
         g_keys[fingerprint] = std::move(key);
     }

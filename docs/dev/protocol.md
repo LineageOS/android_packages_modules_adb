@@ -1,4 +1,4 @@
-
+```
 --- a replacement for aproto -------------------------------------------
 
 When it comes down to it, aproto's primary purpose is to forward
@@ -296,4 +296,4 @@ server: "OKAY"
 
 client: <hex4> <service-name>
 server: "FAIL" <hex4> <reason>
-
+```

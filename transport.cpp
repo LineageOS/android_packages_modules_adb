@@ -57,8 +57,8 @@
 
 #if ADB_HOST
 #include <google/protobuf/text_format.h>
+#include "adb_host.pb.h"
 #include "client/usb.h"
-#include "devices.pb.h"
 #endif
 
 using namespace adb::crypto;
@@ -100,6 +100,7 @@ const char* const kFeatureOpenscreenMdns = "openscreen_mdns";
 const char* const kFeatureDeviceTrackerProtoFormat = "devicetracker_proto_format";
 const char* const kFeatureDevRaw = "devraw";
 const char* const kFeatureAppInfo = "app_info";  // Add information to track-app (package name, ...)
+const char* const kFeatureServerStatus = "server_status";  // Ability to output server status
 
 namespace {
 
@@ -731,7 +732,7 @@ void update_transports() {
 static bool usb_devices_start_detached() {
     static const char* env = getenv("ADB_LIBUSB_START_DETACHED");
     static bool result = env && strcmp("1", env) == 0;
-    return should_use_libusb() && result;
+    return is_libusb_enabled() && result;
 }
 #endif
 
@@ -781,7 +782,7 @@ static void fdevent_register_transport(atransport* t) {
 }
 
 #if ADB_HOST
-void init_reconnect_handler(void) {
+void init_reconnect_handler() {
     reconnect_handler.Start();
 }
 #endif
@@ -1076,7 +1077,7 @@ bool atransport::Attach(std::string* error) {
     D("%s: attach", serial.c_str());
     fdevent_check_looper();
 
-    if (!should_use_libusb()) {
+    if (!is_libusb_enabled()) {
         *error = "attach/detach only implemented for libusb backend";
         return false;
     }
@@ -1103,7 +1104,7 @@ bool atransport::Detach(std::string* error) {
     D("%s: detach", serial.c_str());
     fdevent_check_looper();
 
-    if (!should_use_libusb()) {
+    if (!is_libusb_enabled()) {
         *error = "attach/detach only implemented for libusb backend";
         return false;
     }
@@ -1210,6 +1211,7 @@ const FeatureSet& supported_features() {
             kFeatureDeviceTrackerProtoFormat,
             kFeatureDevRaw,
             kFeatureAppInfo,
+            kFeatureServerStatus,
         };
         // clang-format on
 
@@ -1640,7 +1642,7 @@ void atransport::UpdateReverseConfig(std::string_view service_addr) {
         }
         std::string remote(service_addr.substr(0, it));
 
-        if (norebind && reverse_forwards_.find(remote) != reverse_forwards_.end()) {
+        if (norebind && reverse_forwards_.contains(remote)) {
             // This will fail, don't update the map.
             LOG(DEBUG) << "ignoring reverse forward that will fail due to norebind";
             return;

@@ -539,7 +539,7 @@ void DNSSD_API on_service_browsed(DNSServiceRef sdref, DNSServiceFlags flags,
     }
 }
 
-void init_mdns_transport_discovery_thread(void) {
+void init_mdns_transport_discovery_thread() {
     int error_codes[kNumADBDNSServices];
     for (int i = 0; i < kNumADBDNSServices; ++i) {
         error_codes[i] = DNSServiceBrowse(&g_service_refs[i], 0, 0, kADBDNSServices[i], nullptr,

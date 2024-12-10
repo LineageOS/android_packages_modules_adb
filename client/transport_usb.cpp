@@ -177,7 +177,7 @@ bool is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
         return false;
 }
 
-bool should_use_libusb() {
+bool is_libusb_enabled() {
     bool enable = true;
 #if defined(_WIN32)
     enable = false;

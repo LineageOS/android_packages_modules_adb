@@ -18,6 +18,7 @@
 
 #include <sys/utsname.h>
 
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 
 bool set_tcp_keepalive(borrowed_fd fd, int interval_sec) {
@@ -106,4 +107,22 @@ std::string GetOSVersion(void) {
     uname(&name);
 
     return android::base::StringPrintf("%s %s (%s)", name.sysname, name.release, name.machine);
+}
+
+std::optional<ssize_t> network_peek(borrowed_fd fd) {
+    ssize_t upper_bound_bytes;
+#if defined(__APPLE__)
+    // Can't use recv(MSG_TRUNC) (not supported).
+    // Can't use ioctl(FIONREAD) (returns size in socket queue instead next message size).
+    socklen_t optlen = sizeof(upper_bound_bytes);
+    if (getsockopt(fd.get(), SOL_SOCKET, SO_NREAD, &upper_bound_bytes, &optlen) == -1) {
+        upper_bound_bytes = -1;
+    }
+#else
+    upper_bound_bytes = recv(fd.get(), nullptr, 0, MSG_PEEK | MSG_TRUNC);
+#endif
+    if (upper_bound_bytes == -1) {
+        PLOG(ERROR) << "network_peek error";
+    }
+    return upper_bound_bytes == -1 ? std::nullopt : std::make_optional(upper_bound_bytes);
 }

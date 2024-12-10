@@ -22,7 +22,7 @@
 
 /* IMPORTANT: if you change the following list, don't
  * forget to update the corresponding 'tags' table in
- * the adb_trace_init() function implemented in adb_trace.cpp.
+ * the setup_trace_mask() function implemented in adb_trace.cpp.
  */
 enum AdbTrace {
     ADB = 0, /* 0x001 */
@@ -39,6 +39,8 @@ enum AdbTrace {
     FDEVENT,
     SHELL,
     INCREMENTAL,
+    MDNS,
+    NUM_TRACES,
 };
 
 #define VLOG_IS_ON(TAG) \

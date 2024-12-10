@@ -43,7 +43,7 @@ InstallStatus install_listener(const std::string& local_name, const char* connec
 std::string format_listeners();
 
 InstallStatus remove_listener(const char* local_name, atransport* transport);
-void remove_all_listeners(void);
+void remove_all_listeners();
 
 #if ADB_HOST
 void enable_server_sockets();

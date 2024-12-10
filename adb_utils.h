@@ -50,9 +50,6 @@ std::string dump_packet(const char* name, const char* func, const apacket* p);
 
 std::string perror_str(const char* msg);
 
-[[noreturn]] void error_exit(const char* fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
-[[noreturn]] void perror_exit(const char* fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
-
 bool set_file_block_mode(borrowed_fd fd, bool block);
 
 // Given forward/reverse targets, returns true if they look valid. If an error is found, fills

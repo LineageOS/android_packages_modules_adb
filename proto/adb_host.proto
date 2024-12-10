@@ -60,3 +60,30 @@ message Device {
 message Devices {
     repeated Device device = 1;
 }
+
+message AdbServerStatus {
+    enum UsbBackend {
+        UNKNOWN_USB = 0;
+        NATIVE = 1;
+        LIBUSB = 2;
+    }
+
+    enum MdnsBackend {
+        UNKNOWN_MDNS = 0;
+        BONJOUR = 1;
+        OPENSCREEN = 2;
+     }
+
+     UsbBackend usb_backend = 1;
+     bool usb_backend_forced = 2;
+
+     MdnsBackend mdns_backend = 3;
+     bool mdns_backend_forced = 4;
+
+     string version = 5;
+     string build = 6;
+     string executable_absolute_path = 7;
+     string log_absolute_path = 8;
+     string os = 9;
+}
+

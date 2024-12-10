@@ -1,3 +1,4 @@
+```
 This file tries to document all requests a client can make
 to the ADB server of an adbd daemon. See the OVERVIEW.TXT document
 to understand what's going on here.
@@ -80,6 +81,10 @@ host:<request>
     When asking for information related to a device, 'host:' can also be
     interpreted as 'any single device or emulator connected to/running on
     the host'.
+
+host:server-status
+    Return adb server status (version, build, usb backend, mdns backend, ...).
+    See adb_host.proto AdbServerStatus for more details.
 
 <host-prefix>:get-serialno
     Returns the serial number of the corresponding device/emulator.
@@ -301,3 +306,4 @@ reverse:<forward-command>
 
     The output of reverse:list-forward is the same as host:list-forward
     except that <serial> will be just 'host'.
+```

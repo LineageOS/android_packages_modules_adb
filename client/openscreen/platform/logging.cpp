@@ -24,24 +24,26 @@ bool IsLoggingOn(LogLevel level, const char* file) {
     return true;
 }
 
-void LogWithLevel(LogLevel level, const char* file, int line, std::stringstream message) {
+void LogWithLevel(LogLevel level, const char* file, int line, std::stringstream desc) {
+    android::base::LogSeverity severity;
     switch (level) {
         case LogLevel::kInfo:
-            LOG(INFO) << message.str();
+            severity = android::base::LogSeverity::INFO;
             break;
         case LogLevel::kWarning:
-            LOG(WARNING) << message.str();
+            severity = android::base::LogSeverity::WARNING;
             break;
         case LogLevel::kError:
-            LOG(ERROR) << message.str();
+            severity = android::base::LogSeverity::ERROR;
             break;
         case LogLevel::kFatal:
-            LOG(FATAL) << message.str();
+            severity = android::base::LogSeverity::FATAL;
             break;
         default:
-            LOG(VERBOSE) << message.str();
+            severity = android::base::LogSeverity::DEBUG;
             break;
     }
+    LOG(severity) << std::string("(") + file + ":" + std::to_string(line) + ") " + desc.str();
 }
 
 [[noreturn]] void Break() {

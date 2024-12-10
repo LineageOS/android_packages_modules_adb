@@ -836,7 +836,7 @@ class SyncConnection {
                     const ssize_t bytes_left = amount - buf.size();
                     ssize_t rc = adb_read(fd, buf.end(), bytes_left);
                     if (rc <= 0) {
-                        Error("failed to read copy response");
+                        Error("failed to read copy response: %s", rc < 0 ? strerror(errno) : "EOF");
                         return ReadStatus::Failure;
                     }
                     buf.resize(buf.size() + rc);

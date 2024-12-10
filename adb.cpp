@@ -73,6 +73,7 @@ using namespace std::chrono_literals;
 #endif
 
 #if ADB_HOST
+#include "adb_host.pb.h"
 #include "client/usb.h"
 #endif
 
@@ -139,12 +140,14 @@ std::string to_string(ConnectionState state) {
             return "authorizing";
         case kCsConnecting:
             return "connecting";
+        case kCsDetached:
+            return "detached";
         default:
             return "unknown";
     }
 }
 
-apacket* get_apacket(void) {
+apacket* get_apacket() {
     apacket* p = new apacket();
     if (p == nullptr) {
         LOG(FATAL) << "failed to allocate an apacket";
@@ -1324,6 +1327,34 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
         }
     }
 
+    if (service == "server-status") {
+        adb::proto::AdbServerStatus status;
+        if (is_libusb_enabled()) {
+            status.set_usb_backend(adb::proto::AdbServerStatus::LIBUSB);
+        } else {
+            status.set_usb_backend(adb::proto::AdbServerStatus::NATIVE);
+        }
+        status.set_usb_backend_forced(getenv("ADB_LIBUSB") != nullptr);
+
+        if (using_bonjour()) {
+            status.set_mdns_backend(adb::proto::AdbServerStatus::BONJOUR);
+        } else {
+            status.set_mdns_backend(adb::proto::AdbServerStatus::OPENSCREEN);
+        }
+        status.set_mdns_backend_forced(getenv("ADB_MDNS_OPENSCREEN") != nullptr);
+
+        status.set_version(std::string(PLATFORM_TOOLS_VERSION));
+        status.set_build(android::build::GetBuildNumber());
+        status.set_executable_absolute_path(android::base::GetExecutablePath());
+        status.set_log_absolute_path(GetLogFilePath());
+        status.set_os(GetOSVersion());
+
+        std::string server_status_string;
+        status.SerializeToString(&server_status_string);
+        SendOkay(reply_fd, server_status_string);
+        return HostRequestResult::Handled;
+    }
+
     // return a list of all connected devices
     if (service == "devices" || service == "devices-l") {
         TrackerOutputType output_type;
@@ -1371,7 +1402,7 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
     if (service == "host-features") {
         FeatureSet features = supported_features();
         // Abuse features to report libusb status.
-        if (should_use_libusb()) {
+        if (is_libusb_enabled()) {
             features.emplace_back(kFeatureLibusb);
         }
         features.emplace_back(kFeaturePushSync);

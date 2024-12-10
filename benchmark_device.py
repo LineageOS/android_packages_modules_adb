@@ -22,6 +22,9 @@ import sys
 import tempfile
 import time
 
+transfer_size_mib = 100
+num_runs = 10
+
 # Make sure environment is setup, otherwise "adb" module is not available.
 if os.getenv("ANDROID_BUILD_TOP") is None:
     print("Run source/lunch before running " + sys.argv[0])
@@ -64,7 +67,7 @@ def analyze(name, speeds):
     msg = "%s: %d runs: median %.2f MiB/s, mean %.2f MiB/s, stddev: %.2f MiB/s"
     print(msg % (name, len(speeds), median, mean, stddev))
 
-def benchmark_sink(device=None, size_mb=100):
+def benchmark_sink(device=None, size_mb=transfer_size_mib):
     if device == None:
         device = adb.get_device()
 
@@ -74,16 +77,16 @@ def benchmark_sink(device=None, size_mb=100):
     with tempfile.TemporaryFile() as tmpfile:
         tmpfile.truncate(size_mb * 1024 * 1024)
 
-        for _ in range(0, 10):
+        for _ in range(0, num_runs):
             tmpfile.seek(0)
             begin = time.time()
             subprocess.check_call(cmd, stdin=tmpfile)
             end = time.time()
             speeds.append(size_mb / float(end - begin))
 
-    analyze("sink %dMiB" % size_mb, speeds)
+    analyze("sink   %dMiB (write RAM)  " % size_mb, speeds)
 
-def benchmark_source(device=None, size_mb=100):
+def benchmark_source(device=None, size_mb=transfer_size_mib):
     if device == None:
         device = adb.get_device()
 
@@ -91,72 +94,75 @@ def benchmark_source(device=None, size_mb=100):
     cmd = device.adb_cmd + ["raw", "source:%d" % (size_mb * 1024 * 1024)]
 
     with open(os.devnull, 'w') as devnull:
-        for _ in range(0, 10):
+        for _ in range(0, num_runs):
             begin = time.time()
             subprocess.check_call(cmd, stdout=devnull)
             end = time.time()
             speeds.append(size_mb / float(end - begin))
 
-    analyze("source %dMiB" % size_mb, speeds)
+    analyze("source %dMiB (read RAM)   " % size_mb, speeds)
 
-def benchmark_push(device=None, file_size_mb=100):
+def benchmark_push(device=None, file_size_mb=transfer_size_mib):
     if device == None:
         device = adb.get_device()
 
-    remote_path = "/dev/null"
+    remote_path = "/data/local/tmp/adb_benchmark_push_tmp"
     local_path = "/tmp/adb_benchmark_temp"
 
     with open(local_path, "wb") as f:
         f.truncate(file_size_mb * 1024 * 1024)
 
     speeds = list()
-    for _ in range(0, 10):
+    for _ in range(0, num_runs):
         begin = time.time()
-        device.push(local=local_path, remote=remote_path)
+        parameters = ['-Z'] # Disable compression since our file is full of 0s
+        device.push(local=local_path, remote=remote_path, parameters=parameters)
         end = time.time()
         speeds.append(file_size_mb / float(end - begin))
 
-    analyze("push %dMiB" % file_size_mb, speeds)
+    analyze("push   %dMiB (write flash)" % file_size_mb, speeds)
 
-def benchmark_pull(device=None, file_size_mb=100):
+def benchmark_pull(device=None, file_size_mb=transfer_size_mib):
     if device == None:
         device = adb.get_device()
 
-    remote_path = "/data/local/tmp/adb_benchmark_temp"
+    remote_path = "/data/local/tmp/adb_benchmark_pull_temp"
     local_path = "/tmp/adb_benchmark_temp"
 
     device.shell(["dd", "if=/dev/zero", "of=" + remote_path, "bs=1m",
                   "count=" + str(file_size_mb)])
     speeds = list()
-    for _ in range(0, 10):
+    for _ in range(0, num_runs):
         begin = time.time()
         device.pull(remote=remote_path, local=local_path)
         end = time.time()
         speeds.append(file_size_mb / float(end - begin))
 
-    analyze("pull %dMiB" % file_size_mb, speeds)
+    analyze("pull   %dMiB (read flash) " % file_size_mb, speeds)
 
-def benchmark_shell(device=None, file_size_mb=100):
+def benchmark_device_dd(device=None, file_size_mb=transfer_size_mib):
     if device == None:
         device = adb.get_device()
 
     speeds = list()
-    for _ in range(0, 10):
+    for _ in range(0, num_runs):
         begin = time.time()
         device.shell(["dd", "if=/dev/zero", "bs=1m",
                       "count=" + str(file_size_mb)])
         end = time.time()
         speeds.append(file_size_mb / float(end - begin))
 
-    analyze("shell %dMiB" % file_size_mb, speeds)
+    analyze("dd     %dMiB (write flash)" % file_size_mb, speeds)
 
 def main():
     device = adb.get_device()
     unlock(device)
+
     benchmark_sink(device)
     benchmark_source(device)
     benchmark_push(device)
     benchmark_pull(device)
+    benchmark_device_dd(device)
 
 if __name__ == "__main__":
     main()

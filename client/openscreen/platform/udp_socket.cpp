@@ -399,7 +399,7 @@ class AdbUdpSocket : public UdpSocket {
             return;
         }
 
-        LOG(INFO) << "SendMessage ip=" << dest.ToString();
+        VLOG(MDNS) << "SendMessage ip=" << dest.ToString() << ", size=" << length;
         adb_iovec iov;
         iov.iov_len = length;
         iov.iov_base = const_cast<void*>(data);
@@ -578,6 +578,7 @@ class AdbUdpSocket : public UdpSocket {
             client_->OnRead(this, ChooseError(errno, Error::Code::kSocketReadFailure));
             return;
         }
+        VLOG(MDNS) << "mDNS received bytes=" << *bytes_available;
 
         UdpPacket packet(*bytes_available);
         packet.set_socket(this);
@@ -666,7 +667,7 @@ ErrorOr<std::unique_ptr<UdpSocket>> UdpSocket::Create(TaskRunner* task_runner,
         return Error::Code::kInitializationFailure;
     }
 
-    LOG(INFO) << "UDP socket created for " << local_endpoint;
+    VLOG(MDNS) << "UDP socket created for " << local_endpoint;
     std::unique_ptr<UdpSocket> udp_socket(new AdbUdpSocket(client, local_endpoint, std::move(fd)));
     return udp_socket;
 }

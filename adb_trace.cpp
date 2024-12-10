@@ -73,7 +73,7 @@ static std::string get_log_file_name() {
                                        getpid());
 }
 
-void start_device_log(void) {
+void start_device_log() {
     int fd = unix_open(get_log_file_name(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0640);
     if (fd == -1) {
         return;
@@ -113,22 +113,33 @@ static void setup_trace_mask() {
         return;
     }
 
-    std::unordered_map<std::string, int> trace_flags = {{"1", -1},
-                                                        {"all", -1},
-                                                        {"adb", ADB},
-                                                        {"sockets", SOCKETS},
-                                                        {"packets", PACKETS},
-                                                        {"rwx", RWX},
-                                                        {"usb", USB},
-                                                        {"sync", SYNC},
-                                                        {"sysdeps", SYSDEPS},
-                                                        {"transport", TRANSPORT},
-                                                        {"jdwp", JDWP},
-                                                        {"services", SERVICES},
-                                                        {"auth", AUTH},
-                                                        {"fdevent", FDEVENT},
-                                                        {"shell", SHELL},
-                                                        {"incremental", INCREMENTAL}};
+    std::unordered_map<std::string, int> trace_flags = {
+            {"1", -1},
+            {"all", -1},
+            {"adb", ADB},
+            {"sockets", SOCKETS},
+            {"packets", PACKETS},
+            {"rwx", RWX},
+            {"usb", USB},
+            {"sync", SYNC},
+            {"sysdeps", SYSDEPS},
+            {"transport", TRANSPORT},
+            {"jdwp", JDWP},
+            {"services", SERVICES},
+            {"auth", AUTH},
+            {"fdevent", FDEVENT},
+            {"shell", SHELL},
+            {"incremental", INCREMENTAL},
+            {"mdns", MDNS},
+    };
+
+    // Make sure we check for ALL enum in AdbTrace.
+    size_t num_flags = trace_flags.size() - 2;
+    size_t num_traces = AdbTrace::NUM_TRACES;
+    if (num_flags != num_traces) {
+        LOG(FATAL) << "Mismatched #AdbTrace=" << num_traces
+                   << " and trace_flags.size=" << num_flags;
+    }
 
     std::vector<std::string> elements = android::base::Split(trace_setting, ", ");
     for (const auto& elem : elements) {

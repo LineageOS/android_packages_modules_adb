@@ -431,7 +431,7 @@ std::string format_host_command(const char* command) {
 
 const std::optional<FeatureSet>& adb_get_feature_set(std::string* error) {
     static std::mutex feature_mutex [[clang::no_destroy]];
-    static std::optional<FeatureSet> features [[clang::no_destroy]] GUARDED_BY(feature_mutex);
+    static std::optional<FeatureSet> features [[clang::no_destroy]];
     std::lock_guard<std::mutex> lock(feature_mutex);
     if (!features) {
         std::string result;
@@ -445,4 +445,34 @@ const std::optional<FeatureSet>& adb_get_feature_set(std::string* error) {
         }
     }
     return features;
+}
+
+[[noreturn]] static void error_exit_va(int error, const char* fmt, va_list va) {
+    fflush(stdout);
+    fprintf(stderr, "%s: ", android::base::Basename(android::base::GetExecutablePath()).c_str());
+
+    vfprintf(stderr, fmt, va);
+
+    if (error != 0) {
+        fprintf(stderr, ": %s", strerror(error));
+    }
+
+    putc('\n', stderr);
+    fflush(stderr);
+
+    exit(EXIT_FAILURE);
+}
+
+void error_exit(const char* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    error_exit_va(0, fmt, va);
+    va_end(va);
+}
+
+void perror_exit(const char* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    error_exit_va(errno, fmt, va);
+    va_end(va);
 }

@@ -37,7 +37,7 @@ size_t usb_get_max_packet_size(usb_handle*);
 // USB device detection.
 bool is_adb_interface(int usb_class, int usb_subclass, int usb_protocol);
 
-bool should_use_libusb();
+bool is_libusb_enabled();
 
 namespace libusb {
 void usb_init();

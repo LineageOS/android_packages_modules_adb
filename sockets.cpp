@@ -958,7 +958,7 @@ static void smart_socket_close(asocket* s) {
     delete s;
 }
 
-static asocket* create_smart_socket(void) {
+static asocket* create_smart_socket() {
     D("Creating smart socket");
     asocket* s = new asocket();
     s->enqueue = smart_socket_enqueue;

@@ -1,3 +1,4 @@
+```
 adb can be configured to work with systemd-style socket activation,
 allowing the daemon to start automatically when the adb control port
 is forwarded across a network. You need two files, placed in the usual
@@ -40,3 +41,4 @@ accept(2) connections and that's already bound to the desired address
 and listening. inetd-style pre-accepted sockets do _not_ work in this
 configuration: the file descriptor passed to acceptfd must be the
 serve socket, not the accepted connection socket.
+```

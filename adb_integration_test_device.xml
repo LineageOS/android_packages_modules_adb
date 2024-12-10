@@ -15,7 +15,7 @@
 -->
 <configuration description="Config to run adb integration tests for device">
     <option name="test-suite-tag" value="adb_tests" />
-    <option name="test-suite-tag" value="adb_integration_device" />
+    <option name="test-suite-tag" value="adb_integration" />
     <target_preparer class="com.android.tradefed.targetprep.SemaphoreTokenTargetPreparer">
         <option name="disable" value="false" />
     </target_preparer>

@@ -492,7 +492,7 @@ static void RunLoopThread() {
 }
 
 void usb_cleanup() NO_THREAD_SAFETY_ANALYSIS {
-    VLOG(USB) << "usb_cleanup";
+    VLOG(USB) << "Macos usb_cleanup";
     // Wait until usb operations in RunLoopThread finish, and prevent further operations.
     operate_device_lock.lock();
     close_usb_devices();

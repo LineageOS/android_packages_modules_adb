@@ -33,6 +33,7 @@
 
 // Include this before open/close/isatty/unlink are defined as macros below.
 #include <android-base/errors.h>
+#include <android-base/logging.h>
 #include <android-base/macros.h>
 #include <android-base/off64_t.h>
 #include <android-base/unique_fd.h>
@@ -51,6 +52,8 @@ static inline void* mempcpy(void* dst, const void* src, size_t n) {
     return static_cast<char*>(memcpy(dst, src, n)) + n;
 }
 #endif
+
+std::optional<ssize_t> network_peek(borrowed_fd fd);
 
 #ifdef _WIN32
 
@@ -184,8 +187,6 @@ inline int network_local_server(const char* name, int namespace_id, int type, st
 
 int network_connect(const std::string& host, int port, int type, int timeout,
                     std::string* error);
-
-std::optional<ssize_t> network_peek(borrowed_fd fd);
 
 extern int adb_socket_accept(borrowed_fd serverfd, struct sockaddr* addr, socklen_t* addrlen);
 
@@ -607,11 +608,6 @@ inline int network_local_server(const char* name, int namespace_id, int type, st
 
 int network_connect(const std::string& host, int port, int type, int timeout, std::string* error);
 
-inline std::optional<ssize_t> network_peek(borrowed_fd fd) {
-    ssize_t ret = recv(fd.get(), nullptr, 0, MSG_PEEK | MSG_TRUNC);
-    return ret == -1 ? std::nullopt : std::make_optional(ret);
-}
-
 static inline int adb_socket_accept(borrowed_fd serverfd, struct sockaddr* addr,
                                     socklen_t* addrlen) {
     int fd;
@@ -699,7 +695,11 @@ inline ssize_t adb_sendmsg(borrowed_fd fd, const adb_msghdr* msg, int flags) {
 }
 
 inline ssize_t adb_recvmsg(borrowed_fd fd, adb_msghdr* msg, int flags) {
-    return recvmsg(fd.get(), msg, flags);
+    ssize_t ret = recvmsg(fd.get(), msg, flags);
+    if (ret == -1) {
+        PLOG(ERROR) << "adb_recmsg error";
+    }
+    return ret;
 }
 
 using adb_cmsghdr = cmsghdr;
@@ -789,7 +789,7 @@ static inline void disable_tcp_nagle(borrowed_fd fd) {
 bool set_tcp_keepalive(borrowed_fd fd, int interval_sec);
 
 // Returns a human-readable OS version string.
-extern std::string GetOSVersion(void);
+extern std::string GetOSVersion();
 
 #if defined(_WIN32)
 // Win32 defines ERROR, which we don't need, but which conflicts with google3 logging.

@@ -137,7 +137,7 @@ int adb_server_main(int is_daemon, const std::string& socket_spec, const char* o
     }
 
     if (!getenv("ADB_USB") || strcmp(getenv("ADB_USB"), "0") != 0) {
-        if (should_use_libusb()) {
+        if (is_libusb_enabled()) {
             libusb::usb_init();
         } else {
             usb_init();
