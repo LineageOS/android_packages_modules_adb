@@ -37,6 +37,7 @@
 #include "adb_mdns.h"
 #include "adb_utils.h"
 #include "adb_wifi.h"
+#include "client/transport_client.h"
 #include "client/usb.h"
 #include "commandline.h"
 #include "sysdeps/chrono.h"
@@ -147,7 +148,8 @@ int adb_server_main(int is_daemon, const std::string& socket_spec, const char* o
     }
 
     if (!getenv("ADB_EMU") || strcmp(getenv("ADB_EMU"), "0") != 0) {
-        local_init(android::base::StringPrintf("tcp:%d", DEFAULT_ADB_LOCAL_TRANSPORT_PORT));
+        init_emulator_scanner(
+                android::base::StringPrintf("tcp:%d", DEFAULT_ADB_LOCAL_TRANSPORT_PORT));
     }
 
     std::string error;

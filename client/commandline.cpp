@@ -82,6 +82,8 @@ static std::string product_file(const std::string& file) {
     return std::string{ANDROID_PRODUCT_OUT} + OS_PATH_SEPARATOR_STR + file;
 }
 
+static constexpr int kDefaultServerPort = 5037;
+
 static void help() {
     fprintf(stdout, "%s\n", adb_version().c_str());
     // clang-format off
@@ -1150,7 +1152,7 @@ static int logcat(int argc, const char** argv) {
     char* log_tags = getenv("ANDROID_LOG_TAGS");
     std::string quoted = escape_arg(log_tags == nullptr ? "" : log_tags);
 
-    std::string cmd = "export ANDROID_LOG_TAGS=\"" + quoted + "\"; exec logcat";
+    std::string cmd = "export ANDROID_LOG_TAGS=" + quoted + "; exec logcat";
 
     if (!strcmp(argv[0], "longcat")) {
         cmd += " -v long";
@@ -1671,7 +1673,7 @@ int adb_commandline(int argc, const char** argv) {
         // tcp:1234 and tcp:localhost:1234 are different with -a, so don't default to localhost
         server_host_str = server_host_str ? server_host_str : getenv("ANDROID_ADB_SERVER_ADDRESS");
 
-        int server_port = DEFAULT_ADB_PORT;
+        int server_port = kDefaultServerPort;
         server_port_str = server_port_str ? server_port_str : getenv("ANDROID_ADB_SERVER_PORT");
         if (server_port_str && strlen(server_port_str) > 0) {
             if (!android::base::ParseInt(server_port_str, &server_port, 1, 65535)) {

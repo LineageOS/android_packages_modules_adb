@@ -350,6 +350,66 @@ static bool ClearPipeStallBothEnds(IOUSBInterfaceInterface550** interface, UInt8
     return true;
 }
 
+static std::string darwinErrorToString(IOReturn result) {
+    switch (result) {
+        case kIOReturnSuccess:
+            return "no error";
+        case kIOReturnNotOpen:
+            return "device not opened for exclusive access";
+        case kIOReturnNoDevice:
+            return "no connection to an IOService";
+        case kIOUSBNoAsyncPortErr:
+            return "no async port has been opened for interface";
+        case kIOReturnExclusiveAccess:
+            return "another process has device opened for exclusive access";
+        case kIOUSBPipeStalled:
+#if defined(kUSBHostReturnPipeStalled)
+        case kUSBHostReturnPipeStalled:
+#endif
+            return "pipe is stalled";
+        case kIOReturnError:
+            return "could not establish a connection to the Darwin kernel";
+        case kIOUSBTransactionTimeout:
+            return "transaction timed out";
+        case kIOReturnBadArgument:
+            return "invalid argument";
+        case kIOReturnAborted:
+            return "transaction aborted";
+        case kIOReturnNotResponding:
+            return "device not responding";
+        case kIOReturnOverrun:
+            return "data overrun";
+        case kIOReturnCannotWire:
+            return "physical memory can not be wired down";
+        case kIOReturnNoResources:
+            return "out of resources";
+        case kIOUSBHighSpeedSplitError:
+            return "high speed split error";
+        case kIOUSBUnknownPipeErr:
+            return "pipe ref not recognized";
+        default:
+            return std::format("unknown error ({:#x})", result);
+    }
+}
+
+static void dumpEndpointProperties(const std::string& label,
+                                   const IOUSBEndpointProperties& properties) {
+    VLOG(USB) << std::endl << label;
+    VLOG(USB) << "    wMaxPacketSize=" << properties.wMaxPacketSize;
+    VLOG(USB) << "    bTransferType=" << static_cast<unsigned>(properties.bTransferType);
+    VLOG(USB) << "    bDirection=" << static_cast<unsigned>(properties.bDirection);
+    VLOG(USB) << "    bAlternateSetting=" << static_cast<unsigned>(properties.bAlternateSetting);
+    VLOG(USB) << "    bMult=" << static_cast<unsigned>(properties.bMult);
+    VLOG(USB) << "    bMaxBurst=" << static_cast<unsigned>(properties.bMaxBurst);
+    VLOG(USB) << "    bEndpointNumber=" << static_cast<unsigned>(properties.bEndpointNumber);
+    VLOG(USB) << "    bInterval=" << static_cast<unsigned>(properties.bInterval);
+    VLOG(USB) << "    bMaxStreams=" << static_cast<unsigned>(properties.bMaxStreams);
+    VLOG(USB) << "    bSyncType=" << static_cast<unsigned>(properties.bSyncType);
+    VLOG(USB) << "    bUsageType=" << static_cast<unsigned>(properties.bUsageType);
+    VLOG(USB) << "    bVersion=" << static_cast<unsigned>(properties.bVersion);
+    VLOG(USB) << "    wBytesPerInterval=" << static_cast<unsigned>(properties.wBytesPerInterval);
+}
+
 //* TODO: simplify this further since we only register to get ADB interface
 //* subclass+protocol events
 static std::unique_ptr<usb_handle> CheckInterface(IOUSBInterfaceInterface550** interface,
@@ -396,43 +456,34 @@ static std::unique_ptr<usb_handle> CheckInterface(IOUSBInterfaceInterface550** i
     //* Iterate over the endpoints for this interface and find the first
     //* bulk in/out pipes available.  These will be our read/write pipes.
     for (endpoint = 1; endpoint <= interfaceNumEndpoints; ++endpoint) {
-        UInt8   transferType;
-        UInt16  endPointMaxPacketSize = 0;
-        UInt8   interval;
+        VLOG(USB) << std::endl << "Inspecting endpoint " << static_cast<unsigned>(endpoint);
+        IOUSBEndpointProperties properties = {.bVersion = kUSBEndpointPropertiesVersion3};
 
-        // Attempt to retrieve the 'true' packet-size from supported interface.
-        kr = (*interface)
-                 ->GetEndpointProperties(interface, 0, endpoint,
-                    kUSBOut,
-                    &transferType,
-                    &endPointMaxPacketSize, &interval);
-        if (kr == kIOReturnSuccess) {
-            CHECK_NE(0, endPointMaxPacketSize);
-        }
-
-        UInt16  pipePropMaxPacketSize;
-        UInt8   number;
-        UInt8   direction;
-        UInt8 maxBurst;
-        UInt8 mult;
-        UInt16 bytesPerInterval;
-
-        // Proceed with extracting the transfer direction, so we can fill in the
-        // appropriate fields (bulkIn or bulkOut).
-        kr = (*interface)->GetPipePropertiesV2(interface, endpoint,
-                                       &direction, &number, &transferType,
-                                       &pipePropMaxPacketSize, &interval,
-                                       &maxBurst, &mult,
-                                       &bytesPerInterval);
+        // We only call GetPipePropertiesV3 so it populates the IOUSBEndpointProperties field
+        // needed for GetEndpointPropertiesV3. We don't use wMaxPacketSize returned here
+        // because it is the FULL maxPacketSize which includes burst and mul.
+        kr = (*interface)->GetPipePropertiesV3(interface, endpoint, &properties);
         if (kr != kIOReturnSuccess) {
-            LOG(ERROR) << "FindDeviceInterface - could not get pipe properties: "
-                       << std::hex << kr;
+            LOG(ERROR) << "GetPipePropertiesV3 error : " << darwinErrorToString(kr);
             goto err_get_pipe_props;
         }
+        dumpEndpointProperties("GetPipePropertiesV3 values", properties);
 
-        if (kUSBBulk != transferType) continue;
+        // GetEndpointPropertiesV3 needs IOUSBEndpointProperties fields bVersion, bAlternateSetting,
+        // bDirection, and bEndPointNumber to be set before calling. This was done by
+        // GetPipePropertiesV3.
+        kr = (*interface)->GetEndpointPropertiesV3(interface, &properties);
+        if (kr != kIOReturnSuccess) {
+            LOG(ERROR) << "GetEndpointPropertiesV3 error : " << darwinErrorToString(kr);
+            goto err_get_pipe_props;
+        }
+        dumpEndpointProperties("GetEndpointPropertiesV3 values", properties);
 
-        if (kUSBIn == direction) {
+        if (properties.bTransferType != kUSBBulk) {
+            continue;
+        }
+
+        if (properties.bDirection == kUSBIn) {
             handle->bulkIn = endpoint;
 
             if (!ClearPipeStallBothEnds(interface, handle->bulkIn)) {
@@ -440,25 +491,15 @@ static std::unique_ptr<usb_handle> CheckInterface(IOUSBInterfaceInterface550** i
             }
         }
 
-        if (kUSBOut == direction) {
+        if (properties.bDirection == kUSBOut) {
             handle->bulkOut = endpoint;
+            handle->zero_mask = properties.wMaxPacketSize - 1;
+            handle->max_packet_size = properties.wMaxPacketSize;
 
             if (!ClearPipeStallBothEnds(interface, handle->bulkOut)) {
                 goto err_get_pipe_props;
             }
         }
-
-        // Compute the packet-size, in case the system did not return the correct value.
-        if (endPointMaxPacketSize == 0 && maxBurst != 0) {
-            // bMaxBurst is the number of additional packets in the burst.
-            endPointMaxPacketSize = pipePropMaxPacketSize / (maxBurst + 1);
-        }
-
-        // mult is only relevant for isochronous endpoints.
-        CHECK_EQ(0, mult);
-
-        handle->zero_mask = endPointMaxPacketSize - 1;
-        handle->max_packet_size = endPointMaxPacketSize;
     }
 
     handle->interface = interface;

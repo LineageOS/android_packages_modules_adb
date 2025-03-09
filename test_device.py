@@ -1846,13 +1846,9 @@ class DevicesListing(DeviceTest):
 
 class DevicesListing(DeviceTest):
 
-    serial = subprocess.check_output(['adb', 'get-serialno']).strip().decode("utf-8")
-
     def test_track_app_appinfo(self):
-        return # Disabled until b/301491148 is fixed.
-        # (Exported FeatureFlags cannot be read-only)
-        subprocess.check_output(['adb', 'install', '-t', 'adb1.apk']).strip().decode("utf-8")
-        subprocess.check_output(['adb', 'install', '-t', 'adb2.apk']).strip().decode("utf-8")
+        subprocess.check_output(['adb', 'install', '-r', '-t', 'adb_test_app1.apk']).strip().decode("utf-8")
+        subprocess.check_output(['adb', 'install', '-r', '-t', 'adb_test_app2.apk']).strip().decode("utf-8")
         subprocess.check_output(['adb', 'shell', 'am', 'start', '-W', 'adb.test.app1/.MainActivity']).strip().decode("utf-8")
         subprocess.check_output(['adb', 'shell', 'am', 'start', '-W', 'adb.test.app2/.MainActivity']).strip().decode("utf-8")
         subprocess.check_output(['adb', 'shell', 'am', 'start', '-W', 'adb.test.app1/.OwnProcessActivity']).strip().decode("utf-8")
@@ -1891,6 +1887,26 @@ class ServerStatus(unittest.TestCase):
             self.assertTrue("build" in lines[3])
             self.assertTrue("executable_absolute_path" in lines[4])
             self.assertTrue("log_absolute_path" in lines[5])
+
+def invoke(*args):
+    return subprocess.check_output(args).strip().decode("utf-8")
+
+class OneDevice(unittest.TestCase):
+
+    serial = invoke("adb", "get-serialno")
+    owner_server_port = "14424"
+
+    def test_one_device(self):
+        invoke("adb", "kill-server")
+        invoke("adb", "--one-device", self.serial, "-P", self.owner_server_port, "start-server")
+        devices = invoke("adb", "devices")
+        owned_devices = invoke("adb",  "-P", "14424", "devices")
+        self.assertTrue(self.serial in owned_devices)
+        self.assertFalse(self.serial in devices)
+
+    def tearDown(self):
+        invoke("adb",  "-P", self.owner_server_port, "kill-server")
+        invoke("adb",  "kill-server")
 
 if __name__ == '__main__':
     random.seed(0)

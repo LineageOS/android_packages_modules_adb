@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -30,12 +31,15 @@
 #include "sysdeps/uio.h"
 
 // Essentially std::vector<char>, except without zero initialization or reallocation.
+// Features a position attribute to allow sequential read/writes for copying between Blocks.
 struct Block {
     using iterator = char*;
 
     Block() = default;
 
     explicit Block(size_t size) { allocate(size); }
+
+    explicit Block(const std::string& s) : Block(s.begin(), s.end()) {}
 
     template <typename Iterator>
     Block(Iterator begin, Iterator end) : Block(end - begin) {
@@ -46,7 +50,8 @@ struct Block {
     Block(Block&& move) noexcept
         : data_(std::exchange(move.data_, nullptr)),
           capacity_(std::exchange(move.capacity_, 0)),
-          size_(std::exchange(move.size_, 0)) {}
+          size_(std::exchange(move.size_, 0)),
+          position_(std::exchange(move.position_, 0)) {}
 
     Block& operator=(const Block& copy) = delete;
     Block& operator=(Block&& move) noexcept {
@@ -54,6 +59,7 @@ struct Block {
         data_ = std::exchange(move.data_, nullptr);
         capacity_ = std::exchange(move.capacity_, 0);
         size_ = std::exchange(move.size_, 0);
+        position_ = std::exchange(move.size_, 0);
         return *this;
     }
 
@@ -79,7 +85,23 @@ struct Block {
         data_.reset();
         capacity_ = 0;
         size_ = 0;
+        position_ = 0;
     }
+
+    bool is_full() const { return remaining() == 0; }
+
+    size_t remaining() const { return size_ - position_; }
+
+    size_t fillFrom(Block& from) {
+        size_t size = std::min(remaining(), from.remaining());
+        memcpy(&data_[position_], &from.data_[from.position_], size);
+        position_ += size;
+        from.position_ += size;
+        return size;
+    }
+
+    void rewind() { position_ = 0; }
+    size_t position() const { return position_; }
 
     size_t capacity() const { return capacity_; }
     size_t size() const { return size_; }
@@ -120,6 +142,7 @@ struct Block {
     std::unique_ptr<char[]> data_;
     size_t capacity_ = 0;
     size_t size_ = 0;
+    size_t position_ = 0;
 };
 
 struct amessage {

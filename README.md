@@ -6,4 +6,4 @@ The Android Debug Bridge connects Android devices to to computers running other 
 [man page](docs/user/adb.1.md)
 
 ## Developer documentation
-[main page](docs/dev/README.md)
+[main page](docs/dev/internals.md)

@@ -51,14 +51,17 @@
 #include "adb_utils.h"
 #include "adb_wifi.h"
 #include "socket_spec.h"
+#include "tradeinmode.h"
 #include "transport.h"
 
 #include "daemon/jdwp_service.h"
 #include "daemon/mdns.h"
+#include "daemon/transport_daemon.h"
 #include "daemon/watchdog.h"
 
 #if defined(__ANDROID__)
 static const char* root_seclabel = nullptr;
+static const char* tim_seclabel = nullptr;
 
 static bool should_drop_privileges() {
     // The properties that affect `adb root` and `adb unroot` are ro.secure and
@@ -92,7 +95,7 @@ static bool should_drop_privileges() {
     return drop;
 }
 
-static void drop_privileges(int server_port) {
+static void drop_privileges() {
     ScopedMinijail jail(minijail_new());
 
     // Add extra groups:
@@ -115,7 +118,6 @@ static void drop_privileges(int server_port) {
                       AID_EXT_OBB_RW,   AID_READTRACEFS};
     minijail_set_supplementary_gids(jail.get(), arraysize(groups), groups);
 
-    // Don't listen on a port (default 5037) if running in secure mode.
     // Don't run as root if running in secure mode.
     if (should_drop_privileges()) {
         const bool should_drop_caps = !__android_log_is_debuggable();
@@ -161,7 +163,12 @@ static void drop_privileges(int server_port) {
             PLOG(FATAL) << "cap_set_proc() failed";
         }
 
-        D("Local port disabled");
+        if (should_enter_tradeinmode()) {
+            enter_tradeinmode(tim_seclabel);
+            auth_required = false;
+        } else if (is_in_tradein_evaluation_mode()) {
+            auth_required = false;
+        }
     } else {
         // minijail_enter() will abort if any priv-dropping step fails.
         minijail_enter(jail.get());
@@ -197,11 +204,11 @@ static void setup_adb(const std::vector<std::string>& addrs) {
 #endif
     for (const auto& addr : addrs) {
         LOG(INFO) << "adbd listening on " << addr;
-        local_init(addr);
+        init_transport_socket_server(addr);
     }
 }
 
-int adbd_main(int server_port) {
+int adbd_main() {
     umask(0);
 
     signal(SIGPIPE, SIG_IGN);
@@ -232,7 +239,7 @@ int adbd_main(int server_port) {
     }
 
 #if defined(__ANDROID__)
-    drop_privileges(server_port);
+    drop_privileges();
 #endif
 
 #if defined(__ANDROID__)
@@ -312,6 +319,7 @@ int main(int argc, char** argv) {
     while (true) {
         static struct option opts[] = {
                 {"root_seclabel", required_argument, nullptr, 's'},
+                {"tim_seclabel", required_argument, nullptr, 't'},
                 {"device_banner", required_argument, nullptr, 'b'},
                 {"version", no_argument, nullptr, 'v'},
                 {"logpostfsdata", no_argument, nullptr, 'l'},
@@ -328,6 +336,9 @@ int main(int argc, char** argv) {
 #if defined(__ANDROID__)
             case 's':
                 root_seclabel = optarg;
+                break;
+            case 't':
+                tim_seclabel = optarg;
                 break;
 #endif
             case 'b':
@@ -351,5 +362,5 @@ int main(int argc, char** argv) {
     adb_trace_init(argv);
 
     D("Handling main()");
-    return adbd_main(DEFAULT_ADB_PORT);
+    return adbd_main();
 }

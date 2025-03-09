@@ -173,7 +173,8 @@ struct LibusbConnection : public Connection {
         }
 
         if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-            std::string msg = StringPrintf("usb read failed: status = %d", transfer->status);
+            std::string msg =
+                    StringPrintf("usb read failed: '%s'", libusb_error_name(transfer->status));
             LOG(ERROR) << msg;
             if (!self->detached_) {
                 self->OnError(msg);
@@ -222,7 +223,8 @@ struct LibusbConnection : public Connection {
         }
 
         if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-            std::string msg = StringPrintf("usb read failed: status = %d", transfer->status);
+            std::string msg =
+                    StringPrintf("usb read failed: '%s'", libusb_error_name(transfer->status));
             LOG(ERROR) << msg;
             if (!self->detached_) {
                 self->OnError(msg);
@@ -722,7 +724,6 @@ struct LibusbConnection : public Connection {
             });
 
             incoming_header_.reset();
-            incoming_payload_.clear();
         }
 
         if (device_handle_) {
@@ -796,11 +797,13 @@ struct LibusbConnection : public Connection {
         }
     }
 
-    virtual void Start() override final {
+    virtual bool Start() override final {
         std::string error;
         if (!Attach(&error)) {
             OnError(error);
+            return false;
         }
+        return true;
     }
 
     virtual void Stop() override final {
@@ -876,7 +879,6 @@ struct LibusbConnection : public Connection {
     ReadBlock header_read_ GUARDED_BY(read_mutex_);
     ReadBlock payload_read_ GUARDED_BY(read_mutex_);
     std::optional<amessage> incoming_header_ GUARDED_BY(read_mutex_);
-    IOVector incoming_payload_ GUARDED_BY(read_mutex_);
 
     std::mutex write_mutex_;
     std::unordered_map<TransferId, std::unique_ptr<WriteBlock>> writes_ GUARDED_BY(write_mutex_);
@@ -918,7 +920,8 @@ static void process_device(libusb_device* device_raw) {
     VLOG(USB) << "constructed LibusbConnection for device " << connection->serial_ << " ("
               << device_address << ")";
 
-    register_usb_transport(connection, connection->serial_.c_str(), device_address.c_str(), true);
+    register_libusb_transport(connection, connection->serial_.c_str(), device_address.c_str(),
+                              true);
 }
 
 static void device_connected(libusb_device* device) {

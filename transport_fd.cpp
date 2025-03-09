@@ -137,7 +137,7 @@ struct NonblockingFdConnection : public Connection {
         }
     }
 
-    void Start() override final {
+    bool Start() override final {
         if (started_.exchange(true)) {
             LOG(FATAL) << "Connection started multiple times?";
         }
@@ -147,6 +147,7 @@ struct NonblockingFdConnection : public Connection {
             Run(&error);
             transport_->HandleError(error);
         });
+        return true;
     }
 
     void Stop() override final {

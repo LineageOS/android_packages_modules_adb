@@ -113,7 +113,7 @@ void connect_emulator(const std::string& port_spec, std::string* response) {
     // Check if the emulator is already known.
     // Note: There's a small but harmless race condition here: An emulator not
     // present just yet could be registered by another invocation right
-    // after doing this check here. However, local_connect protects
+    // after doing this check here. However, connect_emulator protects
     // against double-registration too. From here, a better error message
     // can be produced. In the case of the race condition, the very specific
     // error message won't be shown, but the data doesn't get corrupted.
@@ -125,7 +125,7 @@ void connect_emulator(const std::string& port_spec, std::string* response) {
 
     // Preconditions met, try to connect to the emulator.
     std::string error;
-    if (!local_connect_arbitrary_ports(console_port, adb_port, &error)) {
+    if (!connect_emulator_arbitrary_ports(console_port, adb_port, &error)) {
         *response = android::base::StringPrintf("Connected to emulator on ports %d,%d",
                                                 console_port, adb_port);
     } else {

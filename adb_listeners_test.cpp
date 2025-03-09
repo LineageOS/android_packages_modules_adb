@@ -61,7 +61,7 @@ class AdbListenersTest : public ::testing::Test {
     }
 
   protected:
-    atransport transport_;
+    atransport transport_{kTransportLocal};
 };
 
 TEST_F(AdbListenersTest, test_install_listener) {

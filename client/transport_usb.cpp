@@ -164,7 +164,6 @@ void init_usb_transport(atransport* t, usb_handle* h) {
     D("transport: usb");
     auto connection = std::make_unique<UsbConnection>(h);
     t->SetConnection(std::make_unique<BlockingConnectionAdapter>(std::move(connection)));
-    t->type = kTransportUsb;
     t->SetUsbHandle(h);
 }
 

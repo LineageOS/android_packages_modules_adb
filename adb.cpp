@@ -116,6 +116,29 @@ uint32_t calculate_apacket_checksum(const apacket* p) {
     return sum;
 }
 
+std::string command_to_string(uint32_t cmd) {
+    switch (cmd) {
+        case A_SYNC:
+            return "A_SYNC";
+        case A_CNXN:
+            return "A_CNXN";
+        case A_OPEN:
+            return "A_OPEN";
+        case A_OKAY:
+            return "A_OKAY";
+        case A_CLSE:
+            return "A_CLSE";
+        case A_WRTE:
+            return "A_WRTE";
+        case A_AUTH:
+            return "A_AUTH";
+        case A_STLS:
+            return "A_STLS";
+        default:
+            return "UNKNOWN (" + std::to_string(cmd) + ")";
+    }
+}
+
 std::string to_string(ConnectionState state) {
     switch (state) {
         case kCsOffline:
@@ -142,8 +165,8 @@ std::string to_string(ConnectionState state) {
             return "connecting";
         case kCsDetached:
             return "detached";
-        default:
-            return "unknown";
+        case kCsAny:
+            return "any";
     }
 }
 
@@ -550,7 +573,6 @@ void handle_packet(apacket *p, atransport *t)
                     s->peer->peer = s;
 
                     local_socket_ack(s, acked_bytes);
-                    s->ready(s);
                 } else if (s->peer->id == p->msg.arg0) {
                     /* Other READY messages must use the same local-id */
                     local_socket_ack(s, acked_bytes);
@@ -1498,7 +1520,7 @@ HostRequestResult handle_host_request(std::string_view service, TransportType ty
         if (!ParseUint(&port, service)) {
           LOG(ERROR) << "received invalid port for emulator: " << service;
         } else {
-          local_connect(port);
+            connect_emulator(port);
         }
 
         /* we don't even need to send a reply */

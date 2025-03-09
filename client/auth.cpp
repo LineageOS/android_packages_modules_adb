@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG AUTH
-
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +59,7 @@ using namespace adb::crypto;
 using namespace adb::tls;
 
 static bool generate_key(const std::string& file) {
-    LOG(INFO) << "generate_key(" << file << ")...";
+    VLOG(AUTH) << "generate_key(" << file << ")...";
 
     auto rsa_2048 = CreateRSA2048Key();
     if (!rsa_2048) {
@@ -149,13 +147,13 @@ static bool load_key(const std::string& file) {
     if (!already_loaded) {
         g_keys[fingerprint] = std::move(key);
     }
-    LOG(INFO) << (already_loaded ? "ignored already-loaded" : "loaded new") << " key from '" << file
-              << "' with fingerprint " << SHA256BitsToHexString(fingerprint);
+    VLOG(AUTH) << (already_loaded ? "ignored already-loaded" : "loaded new") << " key from '"
+               << file << "' with fingerprint " << SHA256BitsToHexString(fingerprint);
     return true;
 }
 
 static bool load_keys(const std::string& path, bool allow_dir = true) {
-    LOG(INFO) << "load_keys '" << path << "'...";
+    VLOG(AUTH) << "load_keys '" << path << "'...";
 
     struct stat st;
     if (stat(path.c_str(), &st) != 0) {
@@ -191,7 +189,7 @@ static bool load_keys(const std::string& path, bool allow_dir = true) {
             }
 
             if (!android::base::EndsWith(name, ".adb_key")) {
-                LOG(INFO) << "skipped non-adb_key '" << path << "/" << name << "'";
+                VLOG(AUTH) << "skipped non-adb_key '" << path << "/" << name << "'";
                 continue;
             }
 
@@ -217,7 +215,7 @@ static bool load_userkey() {
 
     struct stat buf;
     if (stat(path.c_str(), &buf) == -1) {
-        LOG(INFO) << "User key '" << path << "' does not exist...";
+        VLOG(AUTH) << "User key '" << path << "' does not exist...";
         if (!generate_key(path)) {
             LOG(ERROR) << "Failed to generate new key";
             return false;
@@ -259,7 +257,7 @@ std::deque<std::shared_ptr<RSA>> adb_auth_get_private_keys() {
 
 static std::string adb_auth_sign(RSA* key, const char* token, size_t token_size) {
     if (token_size != TOKEN_SIZE) {
-        D("Unexpected token size %zd", token_size);
+        LOG(WARNING) << "Unexpected token size=" << token_size;
         return std::string();
     }
 
@@ -274,7 +272,7 @@ static std::string adb_auth_sign(RSA* key, const char* token, size_t token_size)
 
     result.resize(len);
 
-    D("adb_auth_sign len=%d", len);
+    VLOG(AUTH) << "adb_auth_sign len=" << len;
     return result;
 }
 
@@ -337,7 +335,7 @@ int adb_auth_pubkey(const char* filename) {
 
 #if defined(__linux__)
 static void adb_auth_inotify_update(int fd, unsigned fd_event, void*) {
-    LOG(INFO) << "adb_auth_inotify_update called";
+    VLOG(AUTH) << "adb_auth_inotify_update called";
     if (!(fd_event & FDE_READ)) {
         return;
     }
@@ -347,7 +345,7 @@ static void adb_auth_inotify_update(int fd, unsigned fd_event, void*) {
         ssize_t rc = TEMP_FAILURE_RETRY(unix_read(fd, buf, sizeof(buf)));
         if (rc == -1) {
             if (errno == EAGAIN) {
-                LOG(INFO) << "done reading inotify fd";
+                VLOG(AUTH) << "done reading inotify fd";
                 break;
             }
             PLOG(FATAL) << "read of inotify event failed";
@@ -372,9 +370,9 @@ static void adb_auth_inotify_update(int fd, unsigned fd_event, void*) {
 
             if (event->mask & (IN_CREATE | IN_MOVED_TO)) {
                 if (event->mask & IN_ISDIR) {
-                    LOG(INFO) << "ignoring new directory at '" << path << "'";
+                    VLOG(AUTH) << "ignoring new directory at '" << path << "'";
                 } else {
-                    LOG(INFO) << "observed new file at '" << path << "'";
+                    VLOG(AUTH) << "observed new file at '" << path << "'";
                     load_keys(path, false);
                 }
             } else {
@@ -388,7 +386,7 @@ static void adb_auth_inotify_update(int fd, unsigned fd_event, void*) {
 }
 
 static void adb_auth_inotify_init(const std::set<std::string>& paths) {
-    LOG(INFO) << "adb_auth_inotify_init...";
+    VLOG(AUTH) << "adb_auth_inotify_init...";
 
     int infd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
     if (infd < 0) {
@@ -404,7 +402,7 @@ static void adb_auth_inotify_init(const std::set<std::string>& paths) {
         }
 
         g_monitored_paths[wd] = path;
-        LOG(INFO) << "watch descriptor " << wd << " registered for '" << path << "'";
+        VLOG(AUTH) << "watch descriptor " << wd << " registered for '" << path << "'";
     }
 
     fdevent* event = fdevent_create(infd, adb_auth_inotify_update, nullptr);
@@ -413,7 +411,7 @@ static void adb_auth_inotify_init(const std::set<std::string>& paths) {
 #endif
 
 void adb_auth_init() {
-    LOG(INFO) << "adb_auth_init...";
+    VLOG(AUTH) << "adb_auth_init...";
 
     if (!load_userkey()) {
         LOG(ERROR) << "Failed to load (or generate) user key";
@@ -432,16 +430,16 @@ void adb_auth_init() {
 }
 
 static void send_auth_publickey(atransport* t) {
-    LOG(INFO) << "Calling send_auth_publickey";
+    VLOG(AUTH) << "Calling send_auth_publickey";
 
     std::string key = adb_auth_get_userkey();
     if (key.empty()) {
-        D("Failed to get user public key");
+        LOG(WARNING) << "Failed to get user public key";
         return;
     }
 
     if (key.size() >= MAX_PAYLOAD_V1) {
-        D("User public key too large (%zu B)", key.size());
+        LOG(WARNING) << "User public key too large " << key.size() << " bytes";
         return;
     }
 
@@ -465,12 +463,12 @@ void send_auth_response(const char* token, size_t token_size, atransport* t) {
         return;
     }
 
-    LOG(INFO) << "Calling send_auth_response";
+    VLOG(AUTH) << "Calling send_auth_response";
     apacket* p = get_apacket();
 
     std::string result = adb_auth_sign(key.get(), token, token_size);
     if (result.empty()) {
-        D("Error signing the token");
+        LOG(WARNING) << "Error signing the token";
         put_apacket(p);
         return;
     }
@@ -487,17 +485,17 @@ void adb_auth_tls_handshake(atransport* t) {
         std::shared_ptr<RSA> key = t->Key();
         if (key == nullptr) {
             // Can happen if !auth_required
-            LOG(INFO) << "t->auth_key not set before handshake";
+            VLOG(AUTH) << "t->auth_key not set before handshake";
             key = t->NextKey();
             CHECK(key);
         }
 
-        LOG(INFO) << "Attempting to TLS handshake";
+        VLOG(AUTH) << "Attempting to TLS handshake";
         bool success = t->connection()->DoTlsHandshake(key.get());
         if (success) {
-            LOG(INFO) << "Handshake succeeded. Waiting for CNXN packet...";
+            VLOG(AUTH) << "Handshake succeeded. Waiting for CNXN packet...";
         } else {
-            LOG(INFO) << "Handshake failed. Kicking transport";
+            VLOG(AUTH) << "Handshake failed. Kicking transport";
             t->Kick();
         }
     }).detach();
@@ -510,13 +508,13 @@ void adb_auth_tls_handshake(atransport* t) {
 // See https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_set_cert_cb
 // for more details.
 int adb_tls_set_certificate(SSL* ssl) {
-    LOG(INFO) << __func__;
+    VLOG(AUTH) << __func__;
 
     const STACK_OF(X509_NAME)* ca_list = SSL_get_client_CA_list(ssl);
     if (ca_list == nullptr) {
         // Either the device doesn't know any keys, or !auth_required.
         // So let's just try with the default certificate and see what happens.
-        LOG(INFO) << "No client CA list. Trying with default certificate.";
+        VLOG(AUTH) << "No client CA list. Trying with default certificate.";
         return 1;
     }
 
@@ -530,7 +528,7 @@ int adb_tls_set_certificate(SSL* ssl) {
             continue;
         }
 
-        LOG(INFO) << "Checking for fingerprint match [" << *adbFingerprint << "]";
+        VLOG(AUTH) << "Checking for fingerprint match [" << *adbFingerprint << "]";
         auto encoded_key = SHA256HexStringToBits(*adbFingerprint);
         if (!encoded_key.has_value()) {
             continue;
@@ -539,7 +537,7 @@ int adb_tls_set_certificate(SSL* ssl) {
         std::lock_guard<std::mutex> lock(g_keys_mutex);
         auto rsa_priv_key = g_keys.find(*encoded_key);
         if (rsa_priv_key != g_keys.end()) {
-            LOG(INFO) << "Got SHA256 match on a key";
+            VLOG(AUTH) << "Got SHA256 match on a key";
             bssl::UniquePtr<EVP_PKEY> evp_pkey(EVP_PKEY_new());
             CHECK(EVP_PKEY_set1_RSA(evp_pkey.get(), rsa_priv_key->second.get()));
             auto x509 = GenerateX509Certificate(evp_pkey.get());
@@ -548,7 +546,7 @@ int adb_tls_set_certificate(SSL* ssl) {
             TlsConnection::SetCertAndKey(ssl, x509_str, evp_str);
             return 1;
         } else {
-            LOG(INFO) << "No match for [" << *adbFingerprint << "]";
+            VLOG(AUTH) << "No match for [" << *adbFingerprint << "]";
         }
     }
 

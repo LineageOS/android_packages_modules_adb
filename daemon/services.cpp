@@ -51,6 +51,7 @@
 #include "services.h"
 #include "socket_spec.h"
 #include "sysdeps.h"
+#include "tradeinmode.h"
 #include "transport.h"
 
 #include "daemon/file_sync_service.h"
@@ -274,6 +275,10 @@ asocket* daemon_service_to_socket(std::string_view name, atransport* transport) 
 
 unique_fd daemon_service_to_fd(std::string_view name, atransport* transport) {
     ADB_LOG(Service) << "transport " << transport->serial_name() << " opening service " << name;
+
+    if (is_in_tradeinmode() && !allow_tradeinmode_command(name)) {
+        return unique_fd{};
+    }
 
 #if defined(__ANDROID__) && !defined(__ANDROID_RECOVERY__)
     if (name.starts_with("abb:") || name.starts_with("abb_exec:")) {

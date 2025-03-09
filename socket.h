@@ -32,28 +32,28 @@ class atransport;
 
 /* An asocket represents one half of a connection between a local and
    remote entity.  A local asocket is bound to a file descriptor.  A
-   remote asocket is bound to the protocol engine.
+   remote asocket is bound to the protocol engine (transport).
 
-   Example (two local_sockets) :
+   Example of a Local Socket (LS) with undetermined peer:
 
-                                   ASOCKET(THIS)
-              ┌────────────────────────────────────────────────┐
-┌──┐ write(3) │  ┌─────┐                      enqueue()        │
-│  │◄─────────┼──┤Queue├─────────────◄────────────┐            │
-│fd│          │  └─────┘                          ▲            │
-│  ├──────────►─────────────────┐                 │            │
-└──┘ read(3)  └─────────────────┼─────────────────┼────────────┘
-                       outgoing │                 │ incoming
-              ┌─────────────────▼─────────────────▲────────────┐  read(3)  ┌──┐
-              │                 │                 └────────────┼─────────◄─┤  │
-              │                 │                      ┌─────┐ │           │fd│
-              │                 └─────────────────────►│Queue├─┼─────────►─┤  │
-              │                enqueue()               └─────┘ │  write(3) └──┘
-              └────────────────────────────────────────────────┘
-                                 ASOCKET(PEER)
+                                  LOCAL SOCKET (THIS)                         TRANSPORT
+                   ┌────────────────────────────────────────────────┐           ┌──┐
+     ┌──┐ write(3) │  ┌─────┐                                   enqueue()       │  │
+     │  │◄─────────┼──┤Queue├─────────────◄──────────────◄──────────┼─────────(A_WRTE)◄──
+     │fd│          │  └─────┘                                       │           │  │
+     │  ├──────────►─────────────────┐                              │        ─  │  │
+     └──┘ read(3)  └─────────────────┼──────────────────────────────┘           │  │
+                                     │                                          │  │
+                   ┌─────────────────▼─────────────────▲────────────┐           │  │
+                   │                 │                              │           │  │
+                   │                 │                              │           │  │
+                   │                 └─────────────────────►──────────────────(A_WRTE)───►
+                   │                enqueue()                       │           │  │
+                   └────────────────────────────────────────────────┘           └──┘
+                                  REMOTE SOCKET (PEER)
 
-    Note that sockets can be peered regardless of their kind. A remote socket can be peered with
-    a smart socket, a local socket can be peered with a remote socket and so on.
+    Note that sockets can be peered regardless of their kind. A Remote Socket (RS) can be peered
+   with a Local Socket (LS) or a Local Service Socket (LSS).
  */
 struct asocket {
     /* the unique identifier for this asocket

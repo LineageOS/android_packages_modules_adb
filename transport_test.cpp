@@ -42,7 +42,7 @@ static void DisconnectFunc(void* arg, atransport*) {
 }
 
 TEST_F(TransportTest, RunDisconnects) {
-    atransport t;
+    atransport t{kTransportLocal};
     // RunDisconnects() can be called with an empty atransport.
     t.RunDisconnects();
 
@@ -66,7 +66,7 @@ TEST_F(TransportTest, RunDisconnects) {
 }
 
 TEST_F(TransportTest, SetFeatures) {
-    atransport t;
+    atransport t{kTransportLocal};
     ASSERT_EQ(0U, t.features().size());
 
     t.SetFeatures(FeatureSetToString(FeatureSet{"foo"}));
@@ -94,7 +94,7 @@ TEST_F(TransportTest, SetFeatures) {
 }
 
 TEST_F(TransportTest, parse_banner_no_features) {
-    atransport t;
+    atransport t{kTransportLocal};
 
     parse_banner("host::", &t);
 
@@ -107,7 +107,7 @@ TEST_F(TransportTest, parse_banner_no_features) {
 }
 
 TEST_F(TransportTest, parse_banner_product_features) {
-    atransport t;
+    atransport t{kTransportLocal};
 
     const char banner[] =
         "host::ro.product.name=foo;ro.product.model=bar;ro.product.device=baz;";
@@ -123,7 +123,7 @@ TEST_F(TransportTest, parse_banner_product_features) {
 }
 
 TEST_F(TransportTest, parse_banner_features) {
-    atransport t;
+    atransport t{kTransportLocal};
     const char banner[] =
         "host::ro.product.name=foo;ro.product.model=bar;ro.product.device=baz;"
         "features=woodly,doodly";
@@ -148,7 +148,7 @@ TEST_F(TransportTest, test_matches_target) {
     std::string model = "test_model";
     std::string device = "test_device";
 
-    atransport t;
+    atransport t{kTransportUsb};
     t.serial = &serial[0];
     t.devpath = &devpath[0];
     t.product = &product[0];
@@ -175,7 +175,7 @@ TEST_F(TransportTest, test_matches_target) {
 TEST_F(TransportTest, test_matches_target_local) {
     std::string serial = "100.100.100.100:5555";
 
-    atransport t;
+    atransport t{kTransportLocal};
     t.serial = &serial[0];
 
     // Network address matching should only be used for local transports.

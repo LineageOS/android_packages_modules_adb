@@ -150,6 +150,7 @@ static void read_status_line(int fd, char* buf, size_t count) {
 }
 
 static unique_fd send_command(const std::vector<std::string>& cmd_args, std::string* error) {
+    VLOG(ADB) << "pm command: '" << android::base::Join(cmd_args, " ") << "'";
     if (is_abb_exec_supported()) {
         return send_abb_exec_command(cmd_args, error);
     } else {
@@ -192,14 +193,12 @@ static int install_app_streamed(int argc, const char** argv, bool use_fastdeploy
 
     struct stat sb;
     if (stat(file, &sb) == -1) {
-        fprintf(stderr, "adb: failed to stat %s: %s\n", file, strerror(errno));
-        return 1;
+        perror_exit("failed to stat %s", file);
     }
 
     unique_fd local_fd(adb_open(file, O_RDONLY | O_CLOEXEC));
     if (local_fd < 0) {
-        fprintf(stderr, "adb: failed to open %s: %s\n", file, strerror(errno));
-        return 1;
+        perror_exit("failed to open %s", file);
     }
 
 #ifdef __linux__
@@ -231,20 +230,17 @@ static int install_app_streamed(int argc, const char** argv, bool use_fastdeploy
 
     unique_fd remote_fd = send_command(cmd_args, &error);
     if (remote_fd < 0) {
-        fprintf(stderr, "adb: connect error for write: %s\n", error.c_str());
-        return 1;
+        error_exit("connect error for write: %s", error.c_str());
     }
 
     if (!copy_to_file(local_fd.get(), remote_fd.get())) {
-        fprintf(stderr, "adb: failed to install: copy_to_file: %s: %s", file, strerror(errno));
-        return 1;
+        perror_exit("failed to install: copy_to_file: %s", file);
     }
 
     char buf[BUFSIZ];
     read_status_line(remote_fd.get(), buf, sizeof(buf));
     if (strncmp("Success", buf, 7) != 0) {
-        fprintf(stderr, "adb: failed to install %s: %s", file, buf);
-        return 1;
+        error_exit("failed to install %s: %s", file, buf);
     }
 
     fputs(buf, stdout);
@@ -395,7 +391,7 @@ static std::pair<InstallMode, std::optional<InstallMode>> calculate_install_mode
                                          "enable_adb_incremental_install_default"};
         auto fd = send_abb_exec_command(args, &error);
         if (!fd.ok()) {
-            fprintf(stderr, "adb: retrieving the default device installation mode failed: %s",
+            fprintf(stderr, "adb: retrieving the default device installation mode failed: %s\n",
                     error.c_str());
         } else {
             char buf[BUFSIZ] = {};
@@ -543,7 +539,8 @@ static int install_multiple_app_streamed(int argc, const char** argv) {
 
         if (android::base::EndsWithIgnoreCase(file, ".apk") ||
             android::base::EndsWithIgnoreCase(file, ".dm") ||
-            android::base::EndsWithIgnoreCase(file, ".fsv_sig")) {
+            android::base::EndsWithIgnoreCase(file, ".fsv_sig") ||
+            android::base::EndsWithIgnoreCase(file, ".idsig")) {  // v4 external signature.
             struct stat sb;
             if (stat(file, &sb) == -1) perror_exit("failed to stat \"%s\"", file);
             total_size += sb.st_size;
@@ -577,8 +574,7 @@ static int install_multiple_app_streamed(int argc, const char** argv) {
     {
         unique_fd fd = send_command(cmd_args, &error);
         if (fd < 0) {
-            fprintf(stderr, "adb: connect error for create: %s\n", error.c_str());
-            return EXIT_FAILURE;
+            perror_exit("connect error for create: %s", error.c_str());
         }
         read_status_line(fd.get(), buf, sizeof(buf));
     }
