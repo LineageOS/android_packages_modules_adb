@@ -106,7 +106,7 @@ ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
     }
 
     AutoMutex _l(lock_);
-    *_aidl_return = __android_log_is_debuggable();
+    *_aidl_return = ANDROID_DEBUGGABLE || __android_log_is_debuggable();
     return ndk::ScopedAStatus::ok();
 }
 

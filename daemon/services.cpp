@@ -123,7 +123,7 @@ unique_fd ShellService(std::string_view args, const atransport* transport) {
 }
 
 static void spin_service(unique_fd fd) {
-    if (!__android_log_is_debuggable()) {
+    if (!ANDROID_DEBUGGABLE && !__android_log_is_debuggable()) {
         WriteFdExactly(fd.get(), "refusing to spin on non-debuggable build\n");
         return;
     }
@@ -146,7 +146,7 @@ static void spin_service(unique_fd fd) {
 
 [[maybe_unused]] static unique_fd reboot_device(const std::string& name) {
 #if defined(__ANDROID_RECOVERY__)
-    if (!__android_log_is_debuggable()) {
+    if (!ANDROID_DEBUGGABLE && !__android_log_is_debuggable()) {
         auto reboot_service = [name](unique_fd fd) {
             std::string reboot_string = android::base::StringPrintf("reboot,%s", name.c_str());
             if (!android::base::SetProperty(ANDROID_RB_PROPERTY, reboot_string)) {
