@@ -75,7 +75,7 @@ static bool should_drop_privileges() {
     // ro.secure:
     //   Drop privileges by default. Set to 1 on userdebug and user builds.
     bool ro_secure = android::base::GetBoolProperty("ro.secure", true);
-    bool ro_debuggable = __android_log_is_debuggable();
+    bool ro_debuggable = ANDROID_DEBUGGABLE || __android_log_is_debuggable();
 
     // Drop privileges if ro.secure is set...
     bool drop = ro_secure;
@@ -120,7 +120,7 @@ static void drop_privileges() {
 
     // Don't run as root if running in secure mode.
     if (should_drop_privileges()) {
-        const bool should_drop_caps = !__android_log_is_debuggable();
+        const bool should_drop_caps = !ANDROID_DEBUGGABLE && !__android_log_is_debuggable();
 
         if (should_drop_caps) {
             // CAP_SETUI and CAP_SETGID are required for change_uid and change_gid calls below.
@@ -221,7 +221,7 @@ int adbd_main() {
 
 #if defined(__ANDROID__)
     bool device_unlocked = android::base::GetProperty("ro.boot.verifiedbootstate", "") == "orange";
-    if (device_unlocked || __android_log_is_debuggable()) {
+    if (device_unlocked || ANDROID_DEBUGGABLE || __android_log_is_debuggable()) {
         // If we're on userdebug/eng or the device is unlocked, permit no-authentication.
         auth_required = android::base::GetBoolProperty("ro.adb.secure", false);
 #if defined(__ANDROID_RECOVERY__)
