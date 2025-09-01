@@ -50,7 +50,16 @@ cc_defaults {
         "-Wvla",
         "-DADB_HOST=1", // overridden by adbd_defaults
         "-DANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONVERSION=1",
+        "-DANDROID_DEBUGGABLE=0",
     ],
+    product_variables: {
+        debuggable: {
+            cflags: [
+                "-UANDROID_DEBUGGABLE",
+                "-DANDROID_DEBUGGABLE=1",
+            ],
+        },
+    },
     cpp_std: "experimental",
 
     use_version_lib: true,
@@ -908,6 +917,17 @@ cc_binary {
     init_rc: [
         "root/adb_root.rc",
     ],
+    cflags: [
+        "-DANDROID_DEBUGGABLE=0",
+    ],
+    product_variables: {
+        debuggable: {
+            cflags: [
+                "-UANDROID_DEBUGGABLE",
+                "-DANDROID_DEBUGGABLE=1",
+            ],
+        },
+    },
     shared_libs: [
         "libbase",
         "libbinder",
