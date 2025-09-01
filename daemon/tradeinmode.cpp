@@ -77,7 +77,8 @@ bool is_in_tradein_evaluation_mode() {
 bool allow_tradeinmode_command(std::string_view name) {
 #if defined(__ANDROID__)
     // Allow "adb root" from trade-in-mode so that automated testing is possible.
-    if (__android_log_is_debuggable() && android::base::ConsumePrefix(&name, "root:")) {
+    if ((ANDROID_DEBUGGABLE || __android_log_is_debuggable()) &&
+        android::base::ConsumePrefix(&name, "root:")) {
         return true;
     }
 #endif

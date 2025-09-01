@@ -473,7 +473,8 @@ asocket* create_local_service_socket(std::string_view name, atransport* transpor
     VLOG(SERVICES) << "LS(" << s->id << "): bound to '" << name << "' via " << fd_value;
 
 #if !ADB_HOST
-    if ((name.starts_with("root:") && getuid() != 0 && __android_log_is_debuggable()) ||
+    if ((name.starts_with("root:") && getuid() != 0 &&
+         (ANDROID_DEBUGGABLE || __android_log_is_debuggable())) ||
         (name.starts_with("unroot:") && getuid() == 0) || name.starts_with("usb:") ||
         name.starts_with("tcpip:")) {
         D("LS(%d): enabling exit_on_close", s->id);
