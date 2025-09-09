@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6204394e_78c84117",
+        "filename": "daemon/restart_service.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2025-09-09T08:39:28Z",
+      "side": 1,
+      "message": "!ANDROID_DEBUGGABLE \u0026\u0026 !__android_log_is_debuggable()",
+      "revId": "b421f42b5f37110cf9c81c8d207b45811e191617",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "abd19e17_3702ab41",
+        "filename": "daemon/services.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2025-09-09T08:39:28Z",
+      "side": 1,
+      "message": "!ANDROID_DEBUGGABLE \u0026\u0026 !__android_log_is_debuggable()",
+      "revId": "b421f42b5f37110cf9c81c8d207b45811e191617",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7063f08c_910b72e9",
+        "filename": "daemon/services.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2025-09-09T08:39:28Z",
+      "side": 1,
+      "message": "!ANDROID_DEBUGGABLE \u0026\u0026 !__android_log_is_debuggable()",
+      "revId": "b421f42b5f37110cf9c81c8d207b45811e191617",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
