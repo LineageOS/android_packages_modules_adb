@@ -614,16 +614,18 @@ cc_library_static {
                 "daemon/usb_ffs.cpp",
                 "daemon/watchdog.cpp",
             ],
-            shared_libs: [
+            static_libs: [
                 "adbd_flags_c_lib",
             ],
         },
         recovery: {
             exclude_shared_libs: [
-                "adbd_flags_c_lib",
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
                 "libapp_processes_protos_lite",
+            ],
+            exclude_static_libs: [
+                "adbd_flags_c_lib",
             ],
         },
     },
@@ -701,12 +703,12 @@ cc_library {
                 "daemon/restart_service.cpp",
             ],
             shared_libs: [
-                "adbd_flags_c_lib",
                 "libbinder_ndk",
                 "libmdnssd",
                 "libselinux",
             ],
             static_libs: [
+                "adbd_flags_c_lib",
                 "android_trade_in_mode_flags_cc_lib",
                 "adbroot_aidl_interface-ndk",
             ],
@@ -716,12 +718,12 @@ cc_library {
                 "daemon/abb_service.cpp",
             ],
             exclude_shared_libs: [
-                "adbd_flags_c_lib",
                 "libbinder_ndk",
                 "libadb_pairing_auth",
                 "libadb_pairing_connection",
             ],
             exclude_static_libs: [
+                "adbd_flags_c_lib",
                 "android_trade_in_mode_flags_cc_lib",
                 "adbroot_aidl_interface-ndk",
             ],
@@ -851,6 +853,7 @@ cc_binary {
             ],
 
             static_libs: [
+                "adbd_flags_c_lib",
                 "android_trade_in_mode_flags_cc_lib",
                 "adbroot_aidl_interface-ndk",
             ],
@@ -864,11 +867,9 @@ cc_binary {
             ],
 
             exclude_static_libs: [
+                "adbd_flags_c_lib",
                 "android_trade_in_mode_flags_cc_lib",
                 "adbroot_aidl_interface-ndk",
-            ],
-            shared_libs: [
-                "adbd_flags_c_lib",
             ],
         },
     },
