@@ -934,6 +934,7 @@ cc_binary {
         },
     },
     shared_libs: [
+        "adbd_flags_c_lib",
         "libbase",
         "libbinder",
         "libbinder_ndk",
