@@ -37,6 +37,10 @@ apex {
     defaults: [
         "com.android.adbd-defaults",
     ],
+    licenses: [
+        "packages_modules_adb_license",
+        "opensourcerequest",
+    ],
 }
 
 // adbd apex with INT_MAX version code, to allow for upgrade/rollback testing.
