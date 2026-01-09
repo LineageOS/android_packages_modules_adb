@@ -362,11 +362,13 @@ int adbd_tls_verify_cert(X509_STORE_CTX* ctx, std::string* auth_key) {
         bool verified = false;
         bssl::UniquePtr<EVP_PKEY> known_evp(EVP_PKEY_new());
         EVP_PKEY_set1_RSA(known_evp.get(), key);
-        if (EVP_PKEY_cmp(known_evp.get(), evp_pkey.get())) {
+        int cmp_result = EVP_PKEY_cmp(known_evp.get(), evp_pkey.get());
+        if (cmp_result == 1) {
             VLOG(AUTH) << "Matched auth_key=" << public_key;
             verified = true;
         } else {
-            VLOG(AUTH) << "auth_key doesn't match [" << public_key << "]";
+            VLOG(AUTH) << "auth_key doesn't match [" << public_key << "] EVP_PKEY_cmp returned "
+                       << cmp_result;
         }
         RSA_free(key);
         if (verified) {
