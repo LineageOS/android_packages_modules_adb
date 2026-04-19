@@ -498,7 +498,10 @@ bool FdConnection::Write(apacket* packet) {
     return true;
 }
 
-bool FdConnection::DoTlsHandshake(RSA* key, std::string* auth_key) {
+#if ADB_HOST
+bool FdConnection::DoTlsHandshake(RSA* key, std::string*) {
+    // DoTlsHandshake can be a long operation, and should not block the fdevent thread.
+
     bssl::UniquePtr<EVP_PKEY> evp_pkey(EVP_PKEY_new());
     if (!EVP_PKEY_set1_RSA(evp_pkey.get(), key)) {
         LOG(ERROR) << "EVP_PKEY_set1_RSA failed";
@@ -509,13 +512,9 @@ bool FdConnection::DoTlsHandshake(RSA* key, std::string* auth_key) {
     auto evp_str = Key::ToPEMString(evp_pkey.get());
 
     int osh = cast_handle_to_int(adb_get_os_handle(fd_));
-#if ADB_HOST
     tls_ = TlsConnection::Create(TlsConnection::Role::Client, x509_str, evp_str, osh);
-#else
-    tls_ = TlsConnection::Create(TlsConnection::Role::Server, x509_str, evp_str, osh);
-#endif
     CHECK(tls_);
-#if ADB_HOST
+
     // TLS 1.3 gives the client no message if the server rejected the
     // certificate. This will enable a check in the tls connection to check
     // whether the client certificate got rejected. Note that this assumes
@@ -526,14 +525,6 @@ bool FdConnection::DoTlsHandshake(RSA* key, std::string* auth_key) {
     tls_->SetCertificateCallback(adb_tls_set_certificate);
     // Allow any server certificate
     tls_->SetCertVerifyCallback([](X509_STORE_CTX*) { return 1; });
-#else
-    // Add callback to check certificate against a list of known public keys
-    tls_->SetCertVerifyCallback(
-            [auth_key](X509_STORE_CTX* ctx) { return adbd_tls_verify_cert(ctx, auth_key); });
-    // Add the list of allowed client CA issuers
-    auto ca_list = adbd_tls_client_ca_list();
-    tls_->SetClientCAList(ca_list.get());
-#endif
 
     auto err = tls_->DoHandshake();
     if (err == TlsError::Success) {
@@ -543,6 +534,58 @@ bool FdConnection::DoTlsHandshake(RSA* key, std::string* auth_key) {
     tls_.reset();
     return false;
 }
+#else
+bool FdConnection::DoTlsHandshake(RSA* key, std::string* auth_key) {
+    // DoTlsHandshake can be a long operation, and should not block the fdevent thread.
+
+    bssl::UniquePtr<EVP_PKEY> evp_pkey(EVP_PKEY_new());
+    if (!EVP_PKEY_set1_RSA(evp_pkey.get(), key)) {
+        LOG(ERROR) << "EVP_PKEY_set1_RSA failed";
+        return false;
+    }
+    auto x509 = GenerateX509Certificate(evp_pkey.get());
+    auto x509_str = X509ToPEMString(x509.get());
+    auto evp_str = Key::ToPEMString(evp_pkey.get());
+
+    int osh = cast_handle_to_int(adb_get_os_handle(fd_));
+    tls_ = TlsConnection::Create(TlsConnection::Role::Server, x509_str, evp_str, osh);
+    CHECK(tls_);
+
+    // Add callback to check certificate against a list of known public keys
+    tls_->SetCertVerifyCallback(
+            [auth_key](X509_STORE_CTX* ctx) { return adbd_tls_verify_cert(ctx, auth_key); });
+    // Add the list of allowed client CA issuers
+    auto ca_list = adbd_tls_client_ca_list();
+    tls_->SetClientCAList(ca_list.get());
+
+    // Set a timeout for the TLS handshake to prevent a malicious or slow client
+    // from blocking this thread indefinitely.
+    struct timeval timeout;
+    timeout.tv_sec = 3;
+    timeout.tv_usec = 0;
+    if (adb_setsockopt(fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0) {
+        PLOG(ERROR) << "failed to set TLS handshake read timeout";
+    }
+    if (adb_setsockopt(fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) != 0) {
+        PLOG(ERROR) << "failed to set TLS handshake write timeout";
+    }
+
+    auto err = tls_->DoHandshake();
+
+    // Reset the timeout after the handshake is done.
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+    adb_setsockopt(fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    adb_setsockopt(fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+
+    if (err == TlsError::Success) {
+        return true;
+    }
+
+    tls_.reset();
+    return false;
+}
+#endif
 
 void FdConnection::Close() {
     adb_shutdown(fd_.get());
