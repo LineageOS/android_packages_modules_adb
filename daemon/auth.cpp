@@ -419,20 +419,42 @@ void adbd_auth_tls_handshake(atransport* t) {
         CHECK(rsa_pkey);
     }
 
-    std::thread([t]() {
+    void* arg = transport_to_callback_arg(t);
+    auto connection = t->connection();
+    std::thread([arg, connection]() {
         std::string auth_key;
-        if (t->connection()->DoTlsHandshake(rsa_pkey, &auth_key)) {
+        // To avoid blocking the fdevent thread, we run the handshake in a thread.
+        bool connected = connection->DoTlsHandshake(rsa_pkey, &auth_key);
+
+        // Move back to the fdevent thread to safely verify the transport's liveness
+        // and update its state. All transport state mutations and the
+        // transport_from_callback_arg() lookup must be performed on the looper
+        // thread to ensure thread-safety and avoid race conditions with
+        // transport destruction.
+        fdevent_run_on_looper([arg, auth_key = std::move(auth_key), connected]() {
+            atransport* t = transport_from_callback_arg(arg);
+            if (!t) {
+                if (connected) {
+                    LOG(ERROR) << "TLS handshake succeeded for deleted transport, ignoring";
+                }
+                return;
+            }
+
+            if (!connected) {
+                // Only allow one attempt at the handshake.
+                t->Kick();
+                return;
+            }
+
             VLOG(AUTH) << "auth_key=" << auth_key;
             if (t->IsTcpDevice()) {
                 t->auth_key = auth_key;
                 adbd_wifi_secure_connect(t);
             } else {
+                // TODO(505788736): This code is most likely dead.
                 adbd_auth_verified(t);
                 adbd_notify_framework_connected_key(t);
             }
-        } else {
-            // Only allow one attempt at the handshake.
-            t->Kick();
-        }
+        });
     }).detach();
 }
