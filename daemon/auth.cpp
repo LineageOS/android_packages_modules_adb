@@ -61,38 +61,64 @@ static RSA* rsa_pkey = nullptr;
 static void adb_disconnected(void* unused, atransport* t);
 static struct adisconnect adb_disconnect = {adb_disconnected, nullptr};
 
+// A global map used to safely pass atransport objects across asynchronous boundaries.
+// This is used for high-latency or long-running tasks (e.g., waiting for user authorization
+// popup or performing a background TLS handshake) that must not block the fdevent thread.
+//
+// The "transport-to-callback" flow works as follows:
+// 1. An asynchronous operation (e.g., waiting for user authorization popup or background TLS
+//    handshake) needs to maintain a reference to an atransport.
+// 2. transport_to_callback_arg() is called on the fdevent thread to generate a unique ID
+//    and store a weak_ptr to the transport in this map.
+// 3. This unique ID is passed as an opaque 'void*' argument to the asynchronous system.
+// 4. When the asynchronous operation completes, it calls back into adbd (e.g.,
+//    adbd_auth_key_authorized).
+// 5. The callback invokes transport_from_callback_arg() on the fdevent thread with the unique ID.
+// 6. If the atransport is still alive, the function returns the raw pointer and removes the
+//    entry from this map. If the transport has been destroyed in the meantime (e.g., device
+//    unplugged or socket closed), it returns nullptr.
 static android::base::NoDestructor<std::map<uint32_t, weak_ptr<atransport>>> transports;
 static uint32_t transport_auth_id = 0;
 
 bool auth_required = true;
 bool socket_access_allowed = true;
 
+// Safely pass an atransport to an asynchronous callback.
+// This function stores a weak pointer to the transport in a global map and returns a unique ID.
+// The transport can then be retrieved using transport_from_callback_arg, which will return
+// nullptr if the transport has been destroyed in the meantime.
+// This function must be called on the fdevent thread.
 static void* transport_to_callback_arg(atransport* transport) {
+    CHECK_LOOPER_THREAD();
     uint32_t id = transport_auth_id++;
     (*transports)[id] = transport->weak();
     return reinterpret_cast<void*>(id);
 }
 
+// Retrieve an atransport from a callback argument.
+// This function must be called on the fdevent thread, as weak_ptr::get() requires it.
+// Returns the transport if it is still alive, or nullptr if it has been destroyed.
+// The entry is removed from the global map upon retrieval.
 static atransport* transport_from_callback_arg(void* id) {
+    CHECK_LOOPER_THREAD();
     uint64_t id_u64 = reinterpret_cast<uint64_t>(id);
     if (id_u64 > std::numeric_limits<uint32_t>::max()) {
         LOG(FATAL) << "transport_from_callback_arg called on out of range value: " << id_u64;
     }
 
     uint32_t id_u32 = static_cast<uint32_t>(id_u64);
-    auto it = transports->find(id_u32);
-    if (it == transports->end()) {
+    auto node = transports->extract(id_u32);
+    if (node.empty()) {
         LOG(ERROR) << "transport_from_callback_arg failed to find transport for id " << id_u32;
         return nullptr;
     }
 
-    atransport* t = it->second.get();
+    atransport* t = node.mapped().get();
     if (!t) {
         LOG(WARNING) << "transport_from_callback_arg found already destructed transport";
         return nullptr;
     }
 
-    transports->erase(it);
     return t;
 }
 
