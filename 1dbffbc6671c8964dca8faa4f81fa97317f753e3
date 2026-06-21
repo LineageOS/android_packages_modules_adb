@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "82f1abcf_19dac4ec",
+        "filename": "Android.bp",
+        "patchSetId": 2
+      },
+      "lineNbr": 879,
+      "author": {
+        "id": 4550
+      },
+      "writtenOn": "2026-06-21T00:03:07Z",
+      "side": 1,
+      "message": "Is this needed? There is adbd.recovery below",
+      "range": {
+        "startLine": 867,
+        "startChar": 0,
+        "endLine": 879,
+        "endChar": 10
+      },
+      "revId": "1dbffbc6671c8964dca8faa4f81fa97317f753e3",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
