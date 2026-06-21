@@ -82,15 +82,15 @@ static inline bool isAutomotive(uid_t uid) {
     return appid == AID_SYSTEM && ::android::isAutomotive();
 }
 
-ADBRootService::ADBRootService() : enabled_(false) {
+AdbRootService::AdbRootService() : enabled_(false) {
     std::string buf;
     if (ReadFileToString(kStoragePath + kEnabled, &buf)) {
         enabled_ = Trim(buf) == "1";
     }
 }
 
-void ADBRootService::Register() {
-    auto service = ndk::SharedRefBase::make<ADBRootService>();
+void AdbRootService::Register() {
+    auto service = ndk::SharedRefBase::make<AdbRootService>();
     binder_status_t status = AServiceManager_addService(
             service->asBinder().get(), getServiceName());
 
@@ -99,7 +99,7 @@ void ADBRootService::Register() {
     }
 }
 
-ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
+ndk::ScopedAStatus AdbRootService::isSupported(bool* _aidl_return) {
     uid_t uid = AIBinder_getCallingUid();
     if (uid != AID_SYSTEM && uid != AID_SHELL && !isAutomotive(uid)) {
         return SecurityException("Caller must be system or shell");
@@ -110,7 +110,7 @@ ndk::ScopedAStatus ADBRootService::isSupported(bool* _aidl_return) {
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
+ndk::ScopedAStatus AdbRootService::setEnabled(bool enabled) {
     uid_t uid = AIBinder_getCallingUid();
     if (uid != AID_SYSTEM && !isAutomotive(uid)) {
         return SecurityException("Caller must be system");
@@ -132,7 +132,7 @@ ndk::ScopedAStatus ADBRootService::setEnabled(bool enabled) {
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ADBRootService::getEnabled(bool* _aidl_return) {
+ndk::ScopedAStatus AdbRootService::getEnabled(bool* _aidl_return) {
     uid_t uid = AIBinder_getCallingUid();
     if (uid != AID_SYSTEM && uid != AID_SHELL && !isAutomotive(uid)) {
         return SecurityException("Caller must be system or shell");

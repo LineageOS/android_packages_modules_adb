@@ -17,7 +17,7 @@
 #define TRACE_TAG SERVICES
 
 #if defined(__ANDROID__) && !defined(__ANDROID_RECOVERY__)
-#include <aidl/android/adbroot/IADBRootService.h>
+#include <aidl/android/adbroot/IAdbRootService.h>
 #include <android/binder_manager.h>
 #endif
 
@@ -41,8 +41,8 @@ void restart_root_service(unique_fd fd) {
 
 #if defined(__ANDROID__) && !defined(__ANDROID_RECOVERY__)
     ndk::SpAIBinder binder = ndk::SpAIBinder(AServiceManager_getService("adbroot_service"));
-    std::shared_ptr<aidl::android::adbroot::IADBRootService> service =
-            aidl::android::adbroot::IADBRootService::fromBinder(binder);
+    std::shared_ptr<aidl::android::adbroot::IAdbRootService> service =
+            aidl::android::adbroot::IAdbRootService::fromBinder(binder);
     if (!service) {
         LOG(ERROR) << "Failed to get adbroot_service interface";
         return;

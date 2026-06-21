@@ -1233,7 +1233,7 @@ aidl_interface {
     unstable: true,
     local_include_dir: "aidl",
     srcs: [
-        "aidl/android/adbroot/IADBRootService.aidl",
+        "aidl/android/adbroot/IAdbRootService.aidl",
     ],
     backend: {
         cpp: {
@@ -1255,6 +1255,6 @@ aidl_interface {
 filegroup {
     name: "adbrootservice_aidl",
     srcs: [
-        "aidl/android/adbroot/IADBRootService.aidl",
+        "aidl/android/adbroot/IAdbRootService.aidl",
     ],
 }

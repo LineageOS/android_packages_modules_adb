@@ -22,7 +22,7 @@
 int main(int /* argc */, char** argv) {
     android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
 
-    aidl::android::adbroot::ADBRootService::Register();
+    aidl::android::adbroot::AdbRootService::Register();
 
     ABinderProcess_startThreadPool();
     ABinderProcess_joinThreadPool();

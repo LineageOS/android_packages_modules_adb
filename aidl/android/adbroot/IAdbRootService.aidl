@@ -15,9 +15,9 @@
  */
 package android.adbroot;
 
-/** {@hide} */
+/** @hide */
 @PermissionManuallyEnforced
-interface IADBRootService {
+interface IAdbRootService {
     boolean isSupported();
     void setEnabled(boolean enabled);
     boolean getEnabled();

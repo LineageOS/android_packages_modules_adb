@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <aidl/android/adbroot/BnADBRootService.h>
+#include <aidl/android/adbroot/BnAdbRootService.h>
 #include <android/binder_status.h>
 #include <log/log_properties.h>
 #include <utils/Mutex.h>
@@ -27,9 +27,9 @@ namespace adbroot {
 
 using ::android::Mutex;
 
-class ADBRootService : public BnADBRootService {
+class AdbRootService : public BnAdbRootService {
   public:
-    ADBRootService();
+    AdbRootService();
 
     static void Register();
 
