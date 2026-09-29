@@ -48,6 +48,7 @@ adb::proto::ProcessEntry ProcessInfo::toProtobuf() const {
   }
   process.set_waiting_for_debugger(waiting_for_debugger);
   process.set_uid(uid);
+  process.set_sandbox_adb(sandbox_adb);
   return process;
 }
 
@@ -69,5 +70,6 @@ std::optional<ProcessInfo> ProcessInfo::parseProtobufString(const std::string& p
   }
   process_info.waiting_for_debugger = process_entry_proto.waiting_for_debugger();
   process_info.uid = process_entry_proto.uid();
+  process_info.sandbox_adb = process_entry_proto.sandbox_adb();
   return process_info;
 }

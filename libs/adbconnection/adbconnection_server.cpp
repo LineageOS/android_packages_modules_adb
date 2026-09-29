@@ -33,6 +33,50 @@
 
 using android::base::unique_fd;
 
+static std::optional<ucred> get_peer_credentials(int fd) {
+  ucred peer = {};
+  socklen_t peer_length = sizeof(peer);
+  if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peer, &peer_length) != 0) {
+    PLOG(ERROR) << "adbconnection_server: unable to get JDWP peer credentials";
+    return {};
+  }
+  if (peer_length != sizeof(peer)) {
+    LOG(ERROR) << "adbconnection_server: invalid JDWP peer credential size " << peer_length;
+    return {};
+  }
+  return peer;
+}
+
+static bool reject_sandbox_peer(int fd, const ProcessInfo& process) {
+  if (!process.sandbox_adb) return false;
+
+  const auto peer = get_peer_credentials(fd);
+  if (!peer) {
+    LOG(ERROR) << "AxSandboxAdb: rejecting JDWP peer without SO_PEERCRED";
+    return true;
+  }
+
+  const bool identity_matches =
+          process.pid == static_cast<uint64_t>(peer->pid) &&
+          process.uid == static_cast<int>(peer->uid);
+  if (!identity_matches) {
+    LOG(ERROR) << "AxSandboxAdb: rejecting JDWP peer with mismatched identity"
+               << " peer_pid=" << peer->pid << " peer_uid=" << peer->uid
+               << " claimed_pid=" << process.pid << " claimed_uid=" << process.uid;
+    return true;
+  }
+
+  LOG(INFO) << "AxSandboxAdb: rejecting JDWP peer"
+            << " pid=" << peer->pid << " uid=" << peer->uid
+            << " process=" << process.process_name;
+  struct linger abortive_close = {.l_onoff = 1, .l_linger = 0};
+  if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &abortive_close,
+                 sizeof(abortive_close)) != 0) {
+    PLOG(WARNING) << "AxSandboxAdb: unable to enable abortive JDWP close";
+  }
+  return true;
+}
+
 std::optional<ProcessInfo> readProcessInfoFromSocket(int socket) {
   std::string proto;
   proto.resize(MAX_APP_MESSAGE_LENGTH);
@@ -139,7 +183,9 @@ void adbconnection_listen(void (*callback)(int fd, ProcessInfo process)) {
 
         auto process_info = readProcessInfoFromSocket(it->get());
         if (process_info) {
-          callback(it->release(), *process_info);
+          if (!reject_sandbox_peer(it->get(), *process_info)) {
+            callback(it->release(), *process_info);
+          }
         } else {
           LOG(ERROR) << "Unable to read ProcessInfo from app startup";
         }

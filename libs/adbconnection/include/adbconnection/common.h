@@ -35,6 +35,7 @@ struct ProcessInfo {
   std::string process_name = "";
   std::unordered_set<std::string> package_names;
   int uid;
+  bool sandbox_adb = false;
 
   adb::proto::ProcessEntry toProtobuf() const;
   static std::optional<ProcessInfo> parseProtobufString(const std::string& proto);

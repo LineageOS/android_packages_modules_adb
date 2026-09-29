@@ -31,6 +31,7 @@ message ProcessEntry {
     repeated string package_names = 7;
     optional bool waiting_for_debugger = 8;
     optional int64 uid = 9;
+    optional bool sandbox_adb = 10;
 }
 
 message AppProcesses {

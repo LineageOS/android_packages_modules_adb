@@ -19,6 +19,8 @@
 #include <pwd.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -37,6 +39,15 @@
 #include "adbconnection/common.h"
 
 using android::base::unique_fd;
+
+static bool is_ax_sandbox_adb_process() {
+#if defined(__ANDROID__)
+  const char* marker = getenv("BIONIC_AX_SANDBOX_ADB");
+  return marker != nullptr && strcmp(marker, "1") == 0;
+#else
+  return false;
+#endif
+}
 
 struct AppInfo {
   std::mutex mutex;
@@ -184,7 +195,11 @@ AdbConnectionClientContext* adbconnection_client_new(
 
   ctx->control_socket_.reset(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0));
   if (ctx->control_socket_ < 0) {
-    PLOG(ERROR) << "failed to create Unix domain socket";
+    if (errno == ECONNREFUSED) {
+      LOG(DEBUG) << "JDWP control socket unavailable";
+    } else {
+      PLOG(ERROR) << "failed to create Unix domain socket";
+    }
     return nullptr;
   }
 
@@ -233,6 +248,7 @@ AdbConnectionClientContext* adbconnection_client_new(
       app_info.process.architecture = *architecture;
     }
     app_info.process.uid = getuid();
+    app_info.process.sandbox_adb = is_ax_sandbox_adb_process();
     app_info.has_pending_update = true;
   }
   send_app_info(ctx.get());
